@@ -225,7 +225,7 @@ function Shell() {
             <strong>
               {state.role === "reviewer"
                 ? "Team lead · Riya"
-                : "Incoming developer · Neha"}
+                : "Viewing as Incoming Developer, Neha"}
             </strong>
             {state.role === "reviewer" && (
               <button className="reset-button" onClick={() => setReset(true)}>

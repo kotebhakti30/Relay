@@ -110,6 +110,12 @@ export function Evidence({
       <div className="flex flex-wrap gap-2">
         <Badge>{claim.category}</Badge>
         <Badge>{claim.evidence}</Badge>
+        <Badge>
+          {claim.refs.length} {claim.refs.length === 1 ? "source" : "sources"}
+        </Badge>
+        {(claim.resolution || claim.review === "Accepted") && (
+          <Badge>Reviewer-confirmed</Badge>
+        )}
         <Badge>Extractor · {claim.extractor}</Badge>
         <Badge>{claim.review}</Badge>
         {claim.restricted && <Badge>Lead only</Badge>}
@@ -128,6 +134,17 @@ export function Evidence({
           </small>
         </div>
       </div>
+      {claim.labelHistory && (
+        <details>
+          <summary>Evidence label history</summary>
+          {claim.labelHistory.map((h, i) => (
+            <p key={i}>
+              {date(h.at)} · {h.label} · {h.count}{" "}
+              {h.count === 1 ? "source" : "sources"}
+            </p>
+          ))}
+        </details>
+      )}
       {claim.resolution && (
         <div className="note">
           <strong>Reviewer resolution</strong>

@@ -62,34 +62,55 @@ export function Handover() {
                     ? "Receipt acknowledged"
                     : "Acknowledge receipt"}
                 </button>
-              ) : (
-                <button
-                  className="primary"
-                  onClick={() => dispatch({ type: "role", role: "incoming" })}
-                >
-                  Get Neha’s access link
-                </button>
-              )}
+              ) : null}
             </div>
           </section>
-          {incomingLink && (
+          {state.role === "reviewer" && (
             <section className="panel">
-              <label>
-                Neha’s access link
-                <input
-                  readOnly
-                  value={incomingLink}
-                  onFocus={(e) => e.target.select()}
-                />
-              </label>
-              <a
-                className="button"
-                target="_blank"
-                rel="noopener noreferrer"
-                href={incomingLink}
+              <h2>Share with Neha</h2>
+              {incomingLink ? (
+                <>
+                  <label>
+                    Neha’s access link
+                    <input
+                      readOnly
+                      value={incomingLink}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </label>
+                  <label>
+                    Access code
+                    <input readOnly value={p.sharing?.code} />
+                  </label>
+                  <p>
+                    Open the link, or enter this code on Relay’s start screen.
+                  </p>
+                  <a
+                    className="button primary"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href={incomingLink}
+                  >
+                    Open Neha’s view in a new window
+                  </a>
+                  <button
+                    onClick={() =>
+                      dispatch({ type: "share", action: "revoke" })
+                    }
+                  >
+                    Revoke access
+                  </button>
+                </>
+              ) : (
+                <p>Sharing is revoked.</p>
+              )}
+              <button
+                onClick={() =>
+                  dispatch({ type: "share", action: "regenerate" })
+                }
               >
-                Open Neha’s handover
-              </a>
+                Regenerate link and code
+              </button>
             </section>
           )}
           <div className="notice">
@@ -110,7 +131,12 @@ export function Handover() {
                 <h3>{c.statement}</h3>
                 <div className="flex gap-2 flex-wrap">
                   <Badge>{c.evidence}</Badge>
-                  {c.resolution && <Badge>Reviewer clarified</Badge>}
+                  <Badge>
+                    {c.refs.length} {c.refs.length === 1 ? "source" : "sources"}
+                  </Badge>
+                  {(c.resolution || c.review === "Accepted") && (
+                    <Badge>Reviewer-confirmed</Badge>
+                  )}
                 </div>
                 <p>
                   Owner: <strong>{c.owner}</strong>

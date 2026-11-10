@@ -1,13 +1,13 @@
 # Relay · DEV404
 An evidence-aware handover for CampusConnect. A lead imports notes, checks quotations and publishes a version for Neha. Her access link opens an independent session with only the permitted snapshot and its first-week plan.
 
-**Deployment target** [dev407 / relay2](https://vercel.com/dev407/relay2). This is the operator dashboard. Use the production domain shown under Settings → Domains for the judge link. At report time the public Round 2 domain and live acceptance result were unconfirmed. [Public source](https://github.com/kotebhakti30/Relay).
+**Production:** https://relay2-rho.vercel.app/ · [Public source](https://github.com/kotebhakti30/Relay).
 
 ## Try it
 1. Click **Try CampusConnect**. Five fictional source records are created in a fresh workspace.
 2. Under **Data Sources**, paste “Kabir will own the nightly digest cron job after Aarav leaves.” Import the note, run **Reconstruction**, and inspect its exact quotation.
 3. Open **Evidence Explorer**. Compare the staging chat and Issue #34. In **Review & Approval**, correct the payment statement and supply a reason and verification outcome. Accept, reject or mark each candidate unresolved. Choose Neha, confirm and approve.
-4. Use **Get Neha’s access link**. Open it in a private window. Complete a first-week task, add a note (saved on leaving the field) and acknowledge receipt. Return to the lead’s **Activity History**. The lead’s session refreshes on window focus, or refresh the page.
+4. Under **Share with Neha**, open the link in a private window or enter the 12-character access code on the start screen. Regenerate or revoke access from the lead panel. Both actions invalidate previously issued incoming sessions. Complete a first-week task, add a note (saved on leaving the field) and acknowledge receipt. Return to the lead’s **Activity History**. The lead’s session refreshes on window focus, or refresh the page.
 
 ## Local quick start
 Use Node 22.12+ or 24, npm, and a PostgreSQL database. On Windows run the commands in PowerShell. Never put real company or personal data in this demonstration.
@@ -49,9 +49,9 @@ Remove-Item Env:RELAY_TEST_URL
 ## Architecture and boundaries
 React/Vite retains the original navigation, Evidence Explorer, Gap Radar, review console, handover, plan and activity screens. Vercel rewrites /api/* to one Node handler. PostgreSQL transactions serialize workspace changes; database triggers reject updates and deletes to published snapshots, reviews and audit events. Acknowledgements and task progress are separate mutable records. A reset retires only the caller’s workspace and issues a new one.
 
-Server-signed, seven-day bearer links identify the workspace and role. The server verifies the signature and active membership before every authenticated operation. Workspace creation bootstraps the lead session. The incoming session queries only the latest audience snapshot and its tasks. Its claim and source detail endpoints use that same view. The workspace token is kept in session storage; invitation links carry a token in the URL fragment that the app consumes. Anyone with that link can act as the recipient. Use synthetic data.
+Server-signed, seven-day bearer links identify the workspace and role. The server verifies the signature and active membership before every authenticated operation. Workspace creation bootstraps the lead session. The incoming session queries only the latest audience snapshot and its tasks. Its claim and source detail endpoints use that same view. The workspace token is kept in session storage; invitation links carry an opaque credential in the URL fragment that the server exchanges for an incoming-only session. Anyone with that link can act as the recipient. Use synthetic data.
 
-Reconstruction separates source batches by visibility. A configured model selects categories and verbatim sentences through a structured response. Deterministic checks accept only known source IDs and matching text after whitespace normalization. The statement uses the selected quotation. Rules compute evidence labels; human review starts at Pending Review. Contradiction matching covers opposite status descriptions for matching subjects. One chat record or a sole record over 30 days old receives Insufficient Evidence. This is bounded extraction and does not detect all natural-language contradictions.
+Reconstruction separates source batches by visibility. A configured model selects categories and verbatim sentences through a structured response. Deterministic checks accept only known source IDs and matching text after whitespace normalization. The statement uses the selected quotation. Rules compute evidence labels; human review starts at Pending Review. Contradiction matching covers opposite status descriptions for matching subjects. Supported requires two independent records no more than six weeks old. Identical imported text cannot corroborate itself. Contradictory current ownership or status evidence takes precedence. Lead-only records are grouped separately. Reviewer decisions and evidence-label history remain distinct. This is bounded extraction and does not detect all natural-language contradictions.
 
 | Capability | Implementation |
 |---|---|

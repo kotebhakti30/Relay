@@ -1,3 +1,4 @@
+import { share, redeem, checkIncoming } from "./sharing.js";
 import { randomUUID, createHash } from "node:crypto";
 import { fail, field, transaction } from "./db.js";
 import { issue, verify } from "./session.js";
@@ -106,6 +107,7 @@ async function state(db, ws, role) {
       ).rows
     : [];
   const p = {
+    sharing: lead && latest ? await share(db, w) : undefined,
     records,
     connections: [...new Set(records.map((r) => r.type))],
     restrictedEnabled: lead,
@@ -192,7 +194,11 @@ export async function request(method, path, header, b, ip) {
       const w = await seed(db);
       return { token: issue(w, "reviewer") };
     });
-  const { role, workspace: w } = verify(header);
+  if (route === "POST redeem") {
+    await transaction((db) => limit(db, "redeem:" + ipKey, 30));
+    return transaction((db) => redeem(db, b));
+  }
+  const { role, workspace: w, generation } = verify(header);
   return transaction(async (db) => {
     const ws = (
       await db.query(
@@ -200,6 +206,7 @@ export async function request(method, path, header, b, ip) {
         [w, role],
       )
     ).rows[0];
+    if (role === "incoming") await checkIncoming(db, w, generation);
     if (!ws) fail(404, "Workspace unavailable.");
     if (b.workspace && b.workspace !== w) fail(403, "Workspace mismatch.");
     if (method === "GET") {
@@ -267,7 +274,21 @@ export async function request(method, path, header, b, ip) {
     if (route === "POST invite") {
       if (!(await versions(db, w, role)).length)
         fail(409, "Approve a handover first.");
-      return { token: issue(w, "incoming") };
+      const action = b.action || "get";
+      if (!["get", "regenerate", "revoke"].includes(action))
+        fail(400, "Unknown sharing action.");
+      const result = await share(db, w, action);
+      if (action !== "get")
+        await log(
+          db,
+          w,
+          role,
+          "Sharing",
+          action === "revoke"
+            ? "Revoked Neha’s access."
+            : "Regenerated Neha’s access.",
+        );
+      return { sharing: result };
     }
     if (route === "POST sources") {
       const text = field(b.text, 8000),
@@ -290,28 +311,20 @@ export async function request(method, path, header, b, ip) {
     } else if (route === "POST reconstruct") {
       await limit(db, "workspace:" + w, 5);
       await limit(db, "extract:" + ipKey, 15);
-      if (ws.run && !ws.dirty) return { ok: true };
+
       const records = (
         await db.query(
           "SELECT * FROM source_records WHERE workspace=$1 ORDER BY recorded_at,id",
           [w],
         )
       ).rows;
-      const { claims, warnings } = await extract(records);
-      for (const msg of warnings) await log(db, w, role, "Extraction", msg);
       const prior = (
         await db.query("SELECT data FROM claims WHERE workspace=$1", [w])
       ).rows.map((r) => r.data);
+      const { claims, warnings } = await extract(records, prior);
+      for (const msg of warnings) await log(db, w, role, "Extraction", msg);
       await db.query("DELETE FROM claims WHERE workspace=$1", [w]);
       for (let c of claims) {
-        const existing = prior.find(
-          (old) =>
-            old.id === c.id &&
-            old.evidence === c.evidence &&
-            JSON.stringify(Object.entries(old.quotes).sort()) ===
-              JSON.stringify(Object.entries(c.quotes).sort()),
-        );
-        if (existing) c = existing;
         await db.query("INSERT INTO claims VALUES($1,$2,$3)", [w, c.id, c]);
         for (const id of c.refs)
           await db.query("INSERT INTO evidence_links VALUES($1,$2,$3,$4)", [

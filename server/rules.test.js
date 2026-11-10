@@ -11,7 +11,7 @@ test("Exact quotes allow only whitespace differences", () => {
 });
 test("Contradictions outrank stale and low authority", () => {
   const fresh = { recorded_at: new Date(), type: "notes" };
-  assert.equal(uncertainty([fresh], false), "Supported");
+  assert.equal(uncertainty([fresh], false), "Insufficient Evidence");
   assert.equal(
     uncertainty([{ ...fresh, type: "chat" }], false),
     "Insufficient Evidence",

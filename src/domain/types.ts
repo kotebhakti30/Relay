@@ -31,7 +31,8 @@ export interface Claim {
   evidence: EvidenceState;
   review: ReviewState;
   refs: string[];
-  quotes?: Record<string,string>;
+  labelHistory?: { label: string; at: string; count: number }[];
+  quotes?: Record<string, string>;
   extractor?: string;
   explanation: string;
   restricted: boolean;
@@ -83,6 +84,7 @@ export interface TaskProgress {
   note: string;
 }
 export interface ProjectState {
+  sharing?: { link: string; code: string } | null;
   records?: SourceRecord[];
   connections: SourceType[];
   restrictedEnabled: boolean;

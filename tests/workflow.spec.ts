@@ -7,7 +7,11 @@ test("CampusConnect • eight-step signed-out handover and direct API permission
 }) => {
   const capture = async (p: typeof page, name: string) => {
     if (!process.env.RELAY_TEST_URL) {
-      await p.locator(name === "evidence" ? ".inspector .explanation" : ".handover-banner").evaluate(el=>el.scrollIntoView({block:"start"}));
+      await p
+        .locator(
+          name === "evidence" ? ".inspector .explanation" : ".handover-banner",
+        )
+        .evaluate((el) => el.scrollIntoView({ block: "start" }));
       await p.screenshot({ path: "test-results/screens/" + name + ".png" });
     }
   };
@@ -91,7 +95,9 @@ test("CampusConnect • eight-step signed-out handover and direct API permission
   await expect(page).toHaveURL(/handover/);
   const original = await (await get("handover")).json();
   expect(original.id).toBe(1);
-  await b("Get Neha’s access link").click();
+  await expect(
+    page.getByRole("heading", { name: "Share with Neha" }),
+  ).toBeVisible();
   const link = await page.getByLabel("Neha’s access link").inputValue();
   const other = await browser.newContext({ baseURL });
   const neha = await other.newPage();
@@ -200,6 +206,39 @@ test("CampusConnect • eight-step signed-out handover and direct API permission
       })
     ).status(),
   ).toBe(400);
+  await go("handover");
+  await expect(
+    neha.getByText("Viewing as Incoming Developer, Neha", { exact: true }),
+  ).toBeVisible();
+  const code = await page
+    .getByLabel("Access code", { exact: true })
+    .inputValue();
+  const codeContext = await browser.newContext({ baseURL });
+  const viaCode = await codeContext.newPage();
+  await viaCode.goto("/");
+  await viaCode.getByLabel("Neha’s access code").fill(code);
+  await viaCode.getByRole("button", { name: "Open shared handover" }).click();
+  await expect(viaCode.locator(".handover-banner")).toContainText(
+    "Aarav → Neha",
+  );
+  await b("Regenerate link and code").click();
+  await expect(page.getByLabel("Neha’s access link")).not.toHaveValue(link);
+  expect((await get("claims", incoming)).status()).toBe(403);
+  expect((await api.post("/api/redeem", { data: { code } })).status()).toBe(
+    403,
+  );
+  const next = await page.getByLabel("Neha’s access link").inputValue();
+  const current = await api.post("/api/redeem", {
+    data: { link: next.split("#share=")[1] },
+  });
+  const currentHeaders = {
+    Authorization: "Bearer " + (await current.json()).token,
+  };
+  expect((await get("sources/CH-R1", currentHeaders)).status()).toBe(404);
+  await b("Revoke access").click();
+  await expect(page.getByText("Sharing is revoked.")).toBeVisible();
+  expect((await get("handover", currentHeaders)).status()).toBe(403);
+  await codeContext.close();
   await other.close();
 });
 
@@ -215,13 +254,11 @@ test("Mobile note upload and direct access before approval", async ({
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("link", { name: "Data Sources", exact: true }).click();
   const text = "Meera will own the transfer checklist.";
-  await page
-    .getByLabel("Upload text or Markdown")
-    .setInputFiles({
-      name: "handover.md",
-      mimeType: "text/markdown",
-      buffer: Buffer.from(text),
-    });
+  await page.getByLabel("Upload text or Markdown").setInputFiles({
+    name: "handover.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from(text),
+  });
   await page.getByRole("button", { name: "Import note" }).click();
   await expect(
     page.getByRole("heading", { name: "handover.md" }),

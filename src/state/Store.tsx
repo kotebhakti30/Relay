@@ -22,23 +22,19 @@ async function api(
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
-  const data = await res
-    .json()
-    .catch(() => ({
-      error: "API unavailable. Check the deployment and retry.",
-    }));
+  const data = await res.json().catch(() => ({
+    error: "API unavailable. Check the deployment and retry.",
+  }));
   if (!res.ok || data?.error) throw new Error(data?.error || "Request failed.");
   return data;
 }
 type Command =
-  Action | { type: "import"; text: string; title: string; visibility: string };
+  | Action
+  | { type: "share"; action: "regenerate" | "revoke" }
+  | { type: "import"; text: string; title: string; visibility: string };
 const key = "relay-session-v2";
 function session() {
-  const invite = location.hash.match(/^#invite=([\w.-]+)$/);
-  if (invite) {
-    sessionStorage.setItem(key, invite[1]);
-    history.replaceState(null, "", location.pathname + "#/handover");
-  }
+  if (location.hash.startsWith("#share=")) return "";
   return sessionStorage.getItem(key) || "";
 }
 const Context = createContext<{
@@ -52,7 +48,31 @@ export function Store({ children }: { children: ReactNode }) {
     [state, setState] = useState<State | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [incomingLink, setLink] = useState("");
+    [code, setCode] = useState("");
+  const share = state?.projects.campus.sharing;
+  const incomingLink = share
+    ? location.origin + location.pathname + "#share=" + share.link
+    : "";
+  async function exchange(body: { link?: string; code?: string }) {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await api("redeem", "", "POST", body);
+      history.replaceState(null, "", location.pathname + "#/handover");
+      remember(r.token);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    const link = location.hash.match(/^#share=(.+)$/)?.[1];
+    if (link) {
+      sessionStorage.removeItem(key);
+      void exchange({ link });
+    }
+  }, []);
   function remember(value: string) {
     sessionStorage.setItem(key, value);
     setToken(value);
@@ -67,7 +87,10 @@ export function Store({ children }: { children: ReactNode }) {
         const next = await api("state", token);
         if (active) setState(next);
       } catch (e) {
-        if (active) setError((e as Error).message);
+        if (active) {
+          setError((e as Error).message);
+          setState(null);
+        }
       }
     }
     if (token) {
@@ -98,7 +121,7 @@ export function Store({ children }: { children: ReactNode }) {
         case "reset": {
           const r = await api("reset", token, "POST", {});
           setState(null);
-          setLink("");
+
           remember(r.token);
           break;
         }
@@ -117,11 +140,9 @@ export function Store({ children }: { children: ReactNode }) {
             confirm: a.appropriate,
           });
           break;
-        case "role": {
-          const r = await api("invite", token, "POST", {});
-          setLink(location.origin + location.pathname + "#invite=" + r.token);
+        case "share":
+          await api("invite", token, "POST", { action: a.action });
           break;
-        }
         case "task":
           await api("tasks/" + a.id, token, "POST", a);
           break;
@@ -181,6 +202,25 @@ export function Store({ children }: { children: ReactNode }) {
                   ? "Opening workspace…"
                   : "Try CampusConnect"}
             </button>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void exchange({ code });
+              }}
+            >
+              <label>
+                Neha’s access code
+                <input
+                  value={code}
+                  maxLength={12}
+                  onChange={(e) => setCode(e.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <button disabled={busy || code.trim().length !== 12}>
+                Open shared handover
+              </button>
+            </form>
           </div>
         </div>
         {feedback}

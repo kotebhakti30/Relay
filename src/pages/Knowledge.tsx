@@ -132,7 +132,10 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                     <strong>{c.statement}</strong>
                     <div className="flex flex-wrap gap-2">
                       <Badge>{c.evidence}</Badge>
-                      <small>{c.refs.length} sources</small>
+                      <small>
+                        {c.refs.length}{" "}
+                        {c.refs.length === 1 ? "source" : "sources"}
+                      </small>
                     </div>
                   </Link>
                 ))}
@@ -181,7 +184,9 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                     <div className="card-meta">
                       <span>{c.owner}</span>
                       <span>
-                        {c.refs.length} sources · {date(c.updated)}
+                        {c.refs.length}{" "}
+                        {c.refs.length === 1 ? "source" : "sources"} ·{" "}
+                        {date(c.updated)}
                       </span>
                     </div>
                   </Link>
