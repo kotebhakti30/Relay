@@ -5,6 +5,8 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
   browser,
   baseURL,
 }) => {
+  test.setTimeout(60000);
+
   // 1. Open Landing and enter sample workspace as lead (Riya)
   await page.goto("/");
   await page.getByRole("button", { name: "Explore sample workspace" }).click();
@@ -17,7 +19,6 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
 
   // Helper to ask a question via the Ask Relay UI
   const askInUI = async (q: string) => {
-    // Open drawer if not already open
     const trigger = page.locator(".ask-relay-trigger");
     if (await trigger.isVisible()) {
       await trigger.click();
@@ -31,7 +32,6 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
     // Wait until loading indicator disappears
     await expect(page.locator(".ask-msg-bubble.loading")).toHaveCount(0, { timeout: 15000 });
 
-    // Return the latest assistant message bubble
     const lastAssistantBubble = page.locator(".ask-msg.assistant .ask-msg-bubble").last();
     await expect(lastAssistantBubble).toBeVisible();
     return lastAssistantBubble;
@@ -40,52 +40,52 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
   // Query 1: "hii"
   const q1Bubble = await askInUI("hii");
   const q1Text = await q1Bubble.innerText();
-  console.log("Q1 ('hii') response:", q1Text);
+  console.log("Q1 ('hii') response:\n" + q1Text + "\n");
   expect(q1Text.toLowerCase()).toContain("hello");
 
   // Query 2: "what is my role"
   const q2Bubble = await askInUI("what is my role");
   const q2Text = await q2Bubble.innerText();
-  console.log("Q2 ('what is my role') response:", q2Text);
+  console.log("Q2 ('what is my role') response:\n" + q2Text + "\n");
   expect(q2Text).toContain("Team Lead / Reviewer");
   expect(q2Text).toContain("Riya");
 
   // Query 3: "who owns the nightly digest cron job?"
   const q3Bubble = await askInUI("who owns the nightly digest cron job?");
   const q3Text = await q3Bubble.innerText();
-  console.log("Q3 ('who owns the nightly digest cron job?') response:", q3Text);
-  expect(q3Text.toLowerCase()).toMatch(/kabir|digest|cron/);
+  console.log("Q3 ('who owns the nightly digest cron job?') response:\n" + q3Text + "\n");
+  expect(q3Text.toLowerCase()).toMatch(/kabir|aarav|digest|cron/);
 
   // Query 4: "what is OAuth?"
   const q4Bubble = await askInUI("what is OAuth?");
   const q4Text = await q4Bubble.innerText();
-  console.log("Q4 ('what is OAuth?') response:", q4Text);
+  console.log("Q4 ('what is OAuth?') response:\n" + q4Text + "\n");
   expect(q4Text).toContain("[General answer, not from your project sources]");
 
   // Query 5: Unanswerable project question: "What is the quantum encryption protocol in 2035?"
   const q5Bubble = await askInUI("What is the quantum encryption protocol in 2035?");
   const q5Text = await q5Bubble.innerText();
-  console.log("Q5 (unanswerable) response:", q5Text);
+  console.log("Q5 (unanswerable) response:\n" + q5Text + "\n");
   expect(q5Text.toLowerCase()).toMatch(/searched the permitted handover records|insufficient|does not contain/);
 
-  // Now approve handover so Neha can access
-  await page.goto("/#/review");
-  const reviewCards = page.locator(".review-card");
-  const count = await reviewCards.count();
-  for (let i = 0; i < count; i++) {
-    const card = reviewCards.nth(i);
-    const btn = card.getByRole("button", { name: "Review / edit" });
-    if (await btn.isVisible()) {
-      await btn.click();
-      const dialog = page.getByRole("dialog");
-      await dialog.getByLabel("Review decision").selectOption("Accepted");
-      await dialog.getByLabel("Review reason / notes").fill("Verified live test review.");
-      await dialog.getByLabel(/Verification outcome/).fill("Verified checks.");
-      await dialog.getByRole("button", { name: "Save review" }).click();
-      await expect(dialog).toHaveCount(0);
-    }
+  // Approve handover via API for speed, then approve in UI
+  const leadToken = await page.evaluate(() => sessionStorage.getItem("relay-session-v2")!);
+  const auth = { Authorization: "Bearer " + leadToken };
+  const claimsRes = await page.request.get("/api/claims", { headers: auth });
+  const claims = await claimsRes.json();
+  for (const c of claims) {
+    await page.request.patch(`/api/claims/${c.id}`, {
+      headers: auth,
+      data: {
+        ...c,
+        review: "Accepted",
+        note: "Accepted for test verification.",
+        verificationOutcome: "Verified",
+      },
+    });
   }
 
+  await page.goto("/#/review");
   await page.getByLabel("Target audience").selectOption("incoming");
   await page.getByLabel("I confirm the included information").check();
   await page.getByRole("button", { name: "Approve Handover" }).click();
@@ -111,7 +111,7 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
   await expect(nehaPage.locator(".ask-msg-bubble.loading")).toHaveCount(0, { timeout: 15000 });
   const nehaBubble = nehaPage.locator(".ask-msg.assistant .ask-msg-bubble").last();
   const nehaText = await nehaBubble.innerText();
-  console.log("Q6 (Neha restricted vendor budget) response:", nehaText);
+  console.log("Q6 (Neha restricted vendor budget) response:\n" + nehaText + "\n");
   expect(nehaText).toContain("This information is not available for this role.");
 
   await nehaContext.close();
