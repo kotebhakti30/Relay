@@ -29,7 +29,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Store, useStore } from "./state/Store";
-import { projects } from "./data/scenario";
+
 import { latest } from "./domain/engine";
 import { Overview, Projects } from "./pages/Overview";
 import { Sources, Reconstruct } from "./pages/Sources";
@@ -83,7 +83,8 @@ function Shell() {
   const [menu, setMenu] = useState(false);
   const [about, setAbout] = useState(false);
   const [toast, setToast] = useState("");
-  const current = projects.find((pr) => pr.id === state.projectId)!;
+  const current = p;
+  const actorName = state.role === "reviewer" ? p.lead : state.role === "incoming" ? p.incoming : p.departing;
   const event = p.events[0];
   useEffect(() => {
     if (!event) return;
@@ -92,6 +93,7 @@ function Shell() {
     return () => clearTimeout(t);
   }, [event?.id, event?.at]);
   useEffect(() => {
+    document.title = (navigation.find(([path]) => path === loc.pathname)?.[1] || "Project details") + " · Relay";
     setMenu(false);
     window.scrollTo(0, 0);
   }, [loc.pathname]);
@@ -116,12 +118,12 @@ function Shell() {
             relay<span className="brand-dot">.</span>
           </span>
         </NavLink>
-        <div className="workspace-label">DEV404 WORKSPACE</div>
+        <div className="workspace-label">Organisation</div>
         <div className="workspace-card">
-          <span className="workspace-avatar">D4</span>
+          <span className="workspace-avatar">{p.code}</span>
           <div>
-            <strong>Project continuity</strong>
-            <small>Round 2 · Knowledge handover</small>
+            <strong>{p.organisation}</strong>
+            <small>Knowledge handover for teams</small>
           </div>
         </div>
         <div className="nav-label">WORKSPACE</div>
@@ -173,19 +175,11 @@ function Shell() {
           </button>
           <div className="sidebar-user">
             <span className="avatar">
-              {state.role === "reviewer"
-                ? "R"
-                : state.role === "incoming"
-                  ? "N"
-                  : p.departing[0]}
+              {actorName[0]}
             </span>
             <div>
               <strong>
-                {state.role === "reviewer"
-                  ? "Riya"
-                  : state.role === "incoming"
-                    ? "Neha"
-                    : p.departing}
+                {actorName}
               </strong>
               <small>
                 {state.role === "reviewer"
@@ -219,18 +213,18 @@ function Shell() {
             <strong>{current.name}</strong>
           </label>
           <div className="topbar-right">
-            <span className="demo-pill">
-              <span /> CAMPUSCONNECT
+            <span className="workspace-pill">
+              <span /> {p.sample ? "Sample data" : p.organisation}
             </span>
             <strong>
               {state.role === "reviewer"
-                ? "Team lead · Riya"
-                : "Viewing as Incoming Developer, Neha"}
+                ? `Team lead · ${p.lead}`
+                : `Viewing as Incoming Developer, ${p.incoming}`}
             </strong>
-            {state.role === "reviewer" && (
+            {p.sample && state.role === "reviewer" && (
               <button className="reset-button" onClick={() => setReset(true)}>
                 <RotateCcw size={15} />
-                Reset workspace
+                Reset sample workspace
               </button>
             )}
           </div>
@@ -245,7 +239,7 @@ function Shell() {
             </strong>
           </span>
           <button onClick={() => setGuide(guide < 0 ? 0 : -1)}>
-            How to try this
+            Quick tour
           </button>
         </div>
         <p className="notice workspace-banner">
@@ -253,13 +247,13 @@ function Shell() {
         </p>
         {guide >= 0 && (
           <section className="panel">
-            <h2>How to try this</h2>
+            <h2>Quick tour</h2>
             <ol>
               <li>Open Data Sources and import your own note.</li>
               <li>Run Reconstruction and inspect an exact quotation.</li>
-              <li>Review the candidates, choose Neha and approve.</li>
+              <li>Review the candidates, choose the incoming member and approve.</li>
               <li>
-                Open Neha’s link in another browser, complete a task and
+                Open the incoming member’s link in another browser, complete a task and
                 acknowledge receipt.
               </li>
             </ol>
@@ -336,12 +330,12 @@ function Shell() {
                 </Guard>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<section className="panel"><h1>Page unavailable</h1><p>This address does not match a page in your workspace.</p><NavLink to="/">Return to overview</NavLink></section>} />
           </Routes>
         </main>
         <footer>
-          <span>Relay · Build {__RELAY_BUILD__}</span>
-          <span>Sample records and imported notes · Server-enforced roles</span>
+          <span>Relay · v2.0.0 · Build {__RELAY_BUILD__}</span>
+          <span><button onClick={() => setAbout(true)}>About &amp; limitations</button></span>
         </footer>
       </div>
       {toast && state.role === "reviewer" && (
@@ -357,10 +351,10 @@ function Shell() {
         </div>
       )}
       {reset && (
-        <Modal title="Reset the entire demo?" onClose={() => setReset(false)}>
+        <Modal title="Reset this sample workspace?" onClose={() => setReset(false)}>
           <p>
             This retires your workspace and its links, and starts a fresh
-            CampusConnect workspace.
+            sample workspace.
           </p>
           <div className="actions">
             <button onClick={() => setReset(false)}>Keep my progress</button>
@@ -381,12 +375,12 @@ function Shell() {
         </Modal>
       )}
       {about && (
-        <Modal title="About Relay" onClose={() => setAbout(false)}>
+        <Modal title="About & limitations" onClose={() => setAbout(false)}>
           <p>
             Relay uses signed anonymous access links and PostgreSQL. Synthetic
             records illustrate the handover. Notes are imported and processed on
-            the server. Candidate labels identify the extractor. This demo uses
-            simplified bearer-link access without OAuth.
+            the server. Candidate labels identify the extractor. This release uses
+            simplified bearer-link access without OAuth. Company signup, email verification, email password reset and external source connectors are unavailable. Extraction uses a configured AI provider or deterministic rules. Inspect the extractor and exact quotations on each claim.
           </p>
         </Modal>
       )}

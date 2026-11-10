@@ -1,16 +1,16 @@
-# Relay · DEV404
-An evidence-aware handover for CampusConnect. A lead imports notes, checks quotations and publishes a version for Neha. Her access link opens an independent session with only the permitted snapshot and its first-week plan.
+# Relay
+Knowledge handover for teams. A lead reviews claims against their exact source text, publishes a handover and shares a first-week plan with the incoming member.
 
 **Production:** https://relay2-rho.vercel.app/ · [Public source](https://github.com/kotebhakti30/Relay).
 
-## Try it
-1. Click **Try CampusConnect**. Five fictional source records are created in a fresh workspace.
-2. Under **Data Sources**, paste “Kabir will own the nightly digest cron job after Aarav leaves.” Import the note, run **Reconstruction**, and inspect its exact quotation.
-3. Open **Evidence Explorer**. Compare the staging chat and Issue #34. In **Review & Approval**, correct the payment statement and supply a reason and verification outcome. Accept, reject or mark each candidate unresolved. Choose Neha, confirm and approve.
-4. Under **Share with Neha**, open the link in a private window or enter the 12-character access code on the start screen. Regenerate or revoke access from the lead panel. Both actions invalidate previously issued incoming sessions. Complete a first-week task, add a note (saved on leaving the field) and acknowledge receipt. Return to the lead’s **Activity History**. The lead’s session refreshes on window focus, or refresh the page.
+## Open a handover
+1. Choose **Explore sample workspace** to start with fictional project data.
+2. Import a note in **Data Sources** and run **Reconstruction**. Open a claim to inspect its quotation. **Add supporting note** imports another source and reruns matching.
+3. In **Review & Approval**, record a decision and reason for every candidate. Select the recipient, confirm suitability and approve.
+4. On **Handover**, select **Open as incoming member**, paste the access link into a private window, or redeem the access code on the landing page. Complete a task and acknowledge receipt. Review the result in **Activity History**.
 
 ## Local quick start
-Use Node 22.12+ or 24, npm, and a PostgreSQL database. On Windows run the commands in PowerShell. Never put real company or personal data in this demonstration.
+Use Node 22.12+ or 24, npm, and a PostgreSQL database. On Windows run the commands in PowerShell. Never put real company or personal data in the sample workspace.
 
 ```sh
 npm ci
@@ -34,7 +34,7 @@ Open http://127.0.0.1:5173. The local command builds Vite and serves its output 
 
 ## Production setup on Vercel
 1. In Neon, create a **Free** project. Choose **Connect**, select the database and role, and copy its pooled connection string. In **SQL Editor**, run the entire repository file `schema.sql`. Alternatively use the migration command above against the same database.
-2. In Vercel select **dev407 → relay2 → Settings → Git**. Verify the connected repository is **kotebhakti30/Relay** and the production branch is **main**. The application root is the repository root. Use Vite, build command `npm run build`, and output directory `dist`.
+2. In Vercel select **dev407 → relay2 → Settings → Git**. Verify the connected repository is **kotebhakti30/Relay** and the production branch is **main**. The application root is the repository root. Use Vite, build command `node scripts/production-migrate.js && npm run build`, and output directory `dist`.
 3. Under **Settings → Environment Variables**, add DATABASE_URL and SESSION_SECRET to **Production**. Add LLM_API_KEY and LLM_PROVIDER together only when you intend to use a provider within your free allowance. Omitting both selects the tested rules path. Save. A changed signing secret invalidates existing links.
 4. Open **Deployments**, choose the latest main build, select **Redeploy**, and wait for **Ready**. Use **Visit** or **Settings → Domains** to copy the production website address. Open it signed out in a private window. If the production domain prompts for Vercel sign-in, review **Settings → Deployment Protection** for production access.
 5. Run the eight-step test on that domain. On Windows PowerShell use the following. Every test run creates new isolated sample workspaces.
@@ -71,5 +71,3 @@ npm run test:e2e
 ```
 The default E2E run starts an isolated real PostgreSQL cluster and serves the production build. No Neon account or model key is required for these local tests. Use a normal non-root user. The runner uses local TCP ports 5173, 55478 and 55479. Optional test-runner settings are RELAY_TEST_URL and PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH; these are not application credentials.
 
-## Team
-Dhanashree S. Hingnekar and Bhakti S. Kote · DEV404 · CodersInPune. [Build report](BUILD_REPORT.md) · [Form draft](FORM_ANSWERS.md).

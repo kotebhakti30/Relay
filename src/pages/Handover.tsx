@@ -67,11 +67,11 @@ export function Handover() {
           </section>
           {state.role === "reviewer" && (
             <section className="panel">
-              <h2>Share with Neha</h2>
+              <h2>Share with {p.incoming}</h2>
               {incomingLink ? (
                 <>
                   <label>
-                    Neha’s access link
+                    {p.incoming}’s access link
                     <input
                       readOnly
                       value={incomingLink}
@@ -91,7 +91,7 @@ export function Handover() {
                     rel="noopener noreferrer"
                     href={incomingLink}
                   >
-                    Open Neha’s view in a new window
+                    Open as incoming member
                   </a>
                   <button
                     onClick={() =>
@@ -229,7 +229,7 @@ export function Plan() {
           </section>
           {state.role !== "incoming" && (
             <p className="notice">
-              Use Neha’s access link to complete tasks and add personal notes.
+              Use {p.incoming}’s access link to complete tasks and add personal notes.
             </p>
           )}
           <div className="plan-list">

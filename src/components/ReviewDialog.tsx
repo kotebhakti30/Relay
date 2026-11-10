@@ -11,7 +11,7 @@ export function ReviewDialog({
   gap?: Gap;
   onClose: () => void;
 }) {
-  const { dispatch } = useStore();
+  const { dispatch, p } = useStore();
   const [statement, setStatement] = useState(claim.statement);
   const [owner, setOwner] = useState(claim.owner);
   const [review, setReview] = useState<ReviewState>(
@@ -80,10 +80,8 @@ export function ReviewDialog({
               {Array.from(
                 new Set([
                   claim.owner,
-                  "Aarav",
-                  "Riya",
-                  "Neha",
-                  "Kabir",
+                  ...p.people.map(person => person.name),
+                  ...p.claims.map(item => item.owner),
                   "Unassigned",
                 ]),
               ).map((n) => (

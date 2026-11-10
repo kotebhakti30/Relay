@@ -84,6 +84,13 @@ export interface TaskProgress {
   note: string;
 }
 export interface ProjectState {
+  name: string;
+  organisation: string;
+  code: string;
+  description: string;
+  sample: boolean;
+  lead: string;
+  people: {name: string; role: string}[];
   sharing?: { link: string; code: string } | null;
   records?: SourceRecord[];
   connections: SourceType[];

@@ -3,8 +3,8 @@ import { randomUUID, createHash } from "node:crypto";
 import { fail, field, transaction } from "./db.js";
 import { issue, verify } from "./session.js";
 import { extract } from "./extract.js";
-import { seed } from "./seed.js";
-const actor = (role) => (role === "incoming" ? "Neha" : "Riya");
+import { sampleProject, seed } from "./seed.js";
+const actor = (role) => (role === "incoming" ? sampleProject.incoming : sampleProject.lead);
 function source(r) {
   return {
     id: r.id,
@@ -107,6 +107,7 @@ async function state(db, ws, role) {
       ).rows
     : [];
   const p = {
+    ...sampleProject,
     sharing: lead && latest ? await share(db, w) : undefined,
     records,
     connections: [...new Set(records.map((r) => r.type))],
@@ -119,13 +120,13 @@ async function state(db, ws, role) {
     tasks: Object.fromEntries(tasks.map((t) => [latest.id + ":" + t.id, t])),
     run: ws.run,
     dirty: lead && ws.dirty,
-    incoming: "Neha",
-    departing: "Aarav",
+    incoming: sampleProject.incoming,
+    departing: sampleProject.departing,
   };
   return { schema: 1, role, projectId: "campus", projects: { campus: p } };
 }
 async function publish(db, w, b) {
-  if (b.audience !== "Neha" || b.confirm !== true)
+  if (b.audience !== sampleProject.incoming || b.confirm !== true)
     fail(400, "Confirm the incoming audience.");
   const drafts = (
     await db.query("SELECT data FROM claims WHERE workspace=$1 ORDER BY id", [
@@ -160,9 +161,9 @@ async function publish(db, w, b) {
     records,
     at: new Date().toISOString(),
     audience: "Incoming Developer",
-    author: "Riya",
-    incoming: "Neha",
-    departing: "Aarav",
+    author: sampleProject.lead,
+    incoming: sampleProject.incoming,
+    departing: sampleProject.departing,
   };
   await db.query("INSERT INTO handover_versions VALUES($1,$2,'incoming',$3)", [
     w,
@@ -180,7 +181,7 @@ async function publish(db, w, b) {
     w,
     "reviewer",
     "Approved",
-    "Published version " + id + " for Neha.",
+    "Published version " + id + " for " + sampleProject.incoming + ".",
   );
 }
 export async function request(method, path, header, b, ip) {
@@ -243,7 +244,7 @@ export async function request(method, path, header, b, ip) {
             w,
             role,
             "Acknowledged",
-            "Neha acknowledged version " + v.id + ".",
+            sampleProject.incoming + " acknowledged version " + v.id + ".",
           );
       } else if (method === "POST" && path.startsWith("tasks/")) {
         const [version, id] = path.slice(6).split(":");
@@ -285,8 +286,8 @@ export async function request(method, path, header, b, ip) {
           role,
           "Sharing",
           action === "revoke"
-            ? "Revoked Neha’s access."
-            : "Regenerated Neha’s access.",
+            ? "Revoked incoming access."
+            : "Regenerated incoming access.",
         );
       return { sharing: result };
     }
@@ -370,7 +371,7 @@ export async function request(method, path, header, b, ip) {
         before,
         after,
         at: new Date().toISOString(),
-        actor: "Riya",
+        actor: sampleProject.lead,
         reason: after.note,
         gapId: b.gapId === "gap-" + id ? b.gapId : null,
       };

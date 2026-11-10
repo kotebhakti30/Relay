@@ -49,7 +49,7 @@ export function Store({ children }: { children: ReactNode }) {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [code, setCode] = useState("");
-  const share = state?.projects.campus.sharing;
+  const share = state?.projects[state.projectId].sharing;
   const incomingLink = share
     ? location.origin + location.pathname + "#share=" + share.link
     : "";
@@ -136,7 +136,7 @@ export function Store({ children }: { children: ReactNode }) {
           break;
         case "approve":
           await api("versions", token, "POST", {
-            audience: a.audience ? "Neha" : "",
+            audience: a.audience ? state?.projects[state.projectId].incoming : "",
             confirm: a.appropriate,
           });
           break;
@@ -148,7 +148,7 @@ export function Store({ children }: { children: ReactNode }) {
           break;
         case "ack":
           await api("acknowledge", token, "POST", {
-            version: state?.projects.campus.versions.at(-1)?.id,
+            version: state?.projects[state.projectId].versions.at(-1)?.id,
           });
           break;
         default:
@@ -181,16 +181,12 @@ export function Store({ children }: { children: ReactNode }) {
       <main className="entry">
         <div className="project-hero">
           <div className="hero-main">
-            <span className="eyebrow">DEV404 · RELAY</span>
-            <h1>Keep the context. Move forward.</h1>
+            <span className="eyebrow">Relay</span>
+            <h1>Knowledge handover for teams</h1>
             <p>
-              Aarav is leaving CampusConnect. Build a handover Neha can verify
-              and act on.
+              Turn project notes into a handover. Trace each claim to its source, review open questions and share an approved first-week plan.
             </p>
-            <p>
-              Synthetic sample workspace. Your notes stay in this workspace
-              only.
-            </p>
+
             <button
               className="primary"
               disabled={busy || (!!token && !error)}
@@ -200,7 +196,7 @@ export function Store({ children }: { children: ReactNode }) {
                 ? "Starting…"
                 : token && !error
                   ? "Opening workspace…"
-                  : "Try CampusConnect"}
+                  : "Explore sample workspace"}
             </button>
             <form
               onSubmit={(e) => {
@@ -209,7 +205,7 @@ export function Store({ children }: { children: ReactNode }) {
               }}
             >
               <label>
-                Neha’s access code
+                Handover access code
                 <input
                   value={code}
                   maxLength={12}
@@ -241,5 +237,5 @@ export function Store({ children }: { children: ReactNode }) {
 export function useStore() {
   const c = useContext(Context);
   if (!c) throw Error("Store missing");
-  return { ...c, p: c.state.projects.campus };
+  return { ...c, p: c.state.projects[c.state.projectId] };
 }

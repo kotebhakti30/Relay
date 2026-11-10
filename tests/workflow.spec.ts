@@ -22,7 +22,7 @@ test("CampusConnect • eight-step signed-out handover and direct API permission
   const token = () =>
     page.evaluate(() => sessionStorage.getItem("relay-session-v2")!);
   await page.goto("/");
-  await b("Try CampusConnect").click();
+  await b("Explore sample workspace").click();
   await expect(
     page.getByText(
       "Synthetic sample workspace. Your notes stay in this workspace only.",
@@ -216,7 +216,7 @@ test("CampusConnect • eight-step signed-out handover and direct API permission
   const codeContext = await browser.newContext({ baseURL });
   const viaCode = await codeContext.newPage();
   await viaCode.goto("/");
-  await viaCode.getByLabel("Neha’s access code").fill(code);
+  await viaCode.getByLabel("Handover access code").fill(code);
   await viaCode.getByRole("button", { name: "Open shared handover" }).click();
   await expect(viaCode.locator(".handover-banner")).toContainText(
     "Aarav → Neha",
@@ -247,7 +247,7 @@ test("Mobile note upload and direct access before approval", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Try CampusConnect" }).click();
+  await page.getByRole("button", { name: "Explore sample workspace" }).click();
   await expect(
     page.getByRole("button", { name: "Open navigation" }),
   ).toBeVisible();

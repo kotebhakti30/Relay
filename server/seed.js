@@ -1,4 +1,13 @@
 import { randomUUID } from "node:crypto";
+export const sampleProject = {
+  name: "CampusConnect", organisation: "CampusConnect", code: "CC",
+  description: "Student collaboration platform", sample: true,
+  lead: "Riya", departing: "Aarav", incoming: "Neha",
+  people: [
+    {name: "Riya", role: "Team lead"}, {name: "Aarav", role: "Backend developer"},
+    {name: "Neha", role: "Incoming developer"}, {name: "Kabir", role: "Frontend developer"}
+  ]
+};
 export const samples = [
   [
     "GH-34",

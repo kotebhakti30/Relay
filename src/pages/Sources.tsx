@@ -60,7 +60,7 @@ export function Sources() {
             maxLength={8000}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Kabir will own the nightly digest cron job after Aarav leaves."
+            placeholder="Paste an assignment, decision, blocker or risk from your meeting."
           />
         </label>
         <label>

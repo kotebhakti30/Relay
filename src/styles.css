@@ -396,7 +396,7 @@ summary:focus-visible {
   font-size: 11px;
   background: #f9faf9;
 }
-.demo-pill {
+.workspace-pill {
   font-size: 9px;
   letter-spacing: 0.8px;
   color: #738777;
@@ -405,7 +405,7 @@ summary:focus-visible {
   align-items: center;
   white-space: nowrap;
 }
-.demo-pill > span {
+.workspace-pill > span {
   width: 5px;
   height: 5px;
   background: #75a37f;
@@ -1604,7 +1604,7 @@ footer {
   .topbar-right {
     gap: 9px;
   }
-  .demo-pill {
+  .workspace-pill {
     display: none;
   }
   .context-bar {

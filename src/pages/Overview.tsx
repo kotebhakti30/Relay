@@ -11,11 +11,11 @@ import {
 } from "lucide-react";
 import { useStore } from "../state/Store";
 import { activeGaps, latest, visibleClaims, plan } from "../domain/engine";
-import { projects } from "../data/scenario";
+
 import { Badge, Heading } from "../components/UI";
 export function Overview() {
   const { state, p } = useStore();
-  const project = projects.find((x) => x.id === state.projectId)!;
+  const project = p;
   const incoming = state.role === "incoming";
   const claims = visibleClaims(p, state.role);
   const version = latest(p);
@@ -98,16 +98,16 @@ export function Overview() {
               <strong>
                 {p.departing}{" "}
                 <span>
-                  · {p.departing === "Kabir" ? "Frontend" : "Backend"} developer
+                  · {p.people.find(person => person.name === p.departing)?.role}
                 </span>
               </strong>
             </div>
             <ArrowRight size={20} />
-            <span className="avatar mint">N</span>
+            <span className="avatar mint">{p.incoming[0]}</span>
             <div>
               <small>Incoming member</small>
               <strong>
-                {p.incoming} <span>· Backend developer</span>
+                {p.incoming} <span>· {p.people.find(person => person.name === p.incoming)?.role}</span>
               </strong>
             </div>
           </div>
@@ -128,7 +128,7 @@ export function Overview() {
           </h3>
           <p>
             {version
-              ? `Version ${version.id} approved by Riya`
+              ? `Version ${version.id} approved by ${version.author}`
               : p.run
                 ? `${reviewed} of ${p.claims.length} claims reviewed`
                 : "Start by importing a meeting note."}
@@ -291,7 +291,7 @@ export function Overview() {
                 </span>
                 <div>
                   <strong>A transition is on the horizon</strong>
-                  <p>Aarav’s work needs a confirmed next owner.</p>
+                  <p>{p.departing}’s work needs a confirmed next owner.</p>
                 </div>
                 <ArrowUpRight size={14} />
               </Link>
@@ -300,7 +300,7 @@ export function Overview() {
                   <Database size={16} />
                 </span>
                 <div>
-                  <strong>Four sources are ready to explore</strong>
+                  <strong>Explore project sources</strong>
                   <p>Start with the synthetic repository and meeting notes.</p>
                 </div>
                 <ArrowUpRight size={14} />
@@ -335,33 +335,22 @@ export function Projects() {
       <Heading
         eyebrow="WORKSPACE"
         title="Projects & people"
-        description="Your isolated CampusConnect workspace and its handover team."
+        description="Project details and the people involved in this handover."
       />
       <div className="two-col">
-        {projects.slice(0, 1).map((pr) => (
-          <section className="panel" key={pr.id}>
+        {[p].map((pr) => (
+          <section className="panel" key={state.projectId}>
             <span className="project-mark">{pr.code}</span>
             <h2>{pr.name}</h2>
             <p>{pr.description}</p>
-            <button
-              className={pr.id === state.projectId ? "" : "primary"}
-              disabled={pr.id === state.projectId}
-              onClick={() => dispatch({ type: "project", id: pr.id })}
-            >
-              {pr.id === state.projectId ? "Current project" : "Open project"}
-            </button>
+            <small>Current project</small>
           </section>
         ))}
       </div>
       <section className="panel mt-6">
         <h2>The handover team</h2>
         <div className="team-grid">
-          {[
-            ["Aarav", "Backend developer"],
-            ["Riya", "Team lead / reviewer"],
-            ["Neha", "Incoming developer"],
-            ["Kabir", "Frontend developer"],
-          ].map(([name, role]) => (
+          {p.people.map(({name, role}) => (
             <div className="team-member" key={name}>
               <span className="avatar mint">{name[0]}</span>
               <strong>{name}</strong>

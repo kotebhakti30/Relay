@@ -73,27 +73,11 @@ export function plan(v?: HandoverVersion): PlanTask[] {
   return readerClaims(v).map((c, i) => ({
     id: `${v!.id}:${c.id}`,
     day: Math.min(i + 1, 5),
-    title:
-      c.id === "architecture"
-        ? "Understand the API architecture"
-        : c.id === "payment"
-          ? "Verify payment integration"
-          : c.id === "cron"
-            ? "Confirm and investigate the cron job"
-            : c.id === "security"
-              ? "Review the authentication release gate"
-              : c.review === "Unresolved"
-                ? `Clarify: ${c.statement}`
-                : `Continue: ${c.statement}`,
-    priority: ["payment", "cron", "access"].includes(c.id) ? "High" : "Normal",
-    owner: "Neha",
+    title: (c.review === "Unresolved" ? "Clarify: " : "Review: ") + c.statement,
+    priority: c.review === "Unresolved" || c.evidence === "Conflicting" ? "High" : "Normal",
+    owner: v!.incoming,
     claim: c,
-    dependency:
-      c.id === "cron"
-        ? "Confirm operations access before configuring the job."
-        : c.id === "retry"
-          ? "Verify staging payment behavior before merging."
-          : "Read the linked evidence and reviewer notes first.",
+    dependency: "Read the linked evidence and reviewer notes first.",
   }));
 }
 export type Action =

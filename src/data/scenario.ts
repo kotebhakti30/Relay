@@ -1,18 +1,4 @@
 import type { Gap } from "../domain/types";
-export const projects = [
-  {
-    id: "campus",
-    name: "CampusConnect",
-    description: "Student Collaboration Platform",
-    code: "CC",
-  },
-  {
-    id: "practice",
-    name: "CampusConnect · Practice",
-    description: "An independent rehearsal workspace",
-    code: "CP",
-  },
-];
 export const gaps: Gap[] = [
   {
     id: "gap-payment",

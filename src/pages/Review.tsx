@@ -71,7 +71,7 @@ export function Review() {
                     {c.restricted && <Badge>Excluded from incoming view</Badge>}
                     <span className="meta">Owner: {c.owner}</span>
                   </div>
-                  {c.note && <p className="review-note">Riya: {c.note}</p>}
+                  {c.note && <p className="review-note">Reviewer: {c.note}</p>}
                   <div className="actions">
                     <button className="primary" onClick={() => setEdit(c)}>
                       Review / edit
@@ -258,10 +258,7 @@ export function Gaps() {
                 set: setOwner,
                 options: [
                   "All owners",
-                  "Aarav",
-                  "Riya",
-                  "Neha",
-                  "Kabir",
+                  ...new Set(p.claims.map(claim => claim.owner)),
                   "Unassigned",
                 ],
               },
