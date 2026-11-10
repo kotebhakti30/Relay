@@ -42,6 +42,7 @@ const Context = createContext<{
   dispatch: (a: Command) => Promise<boolean>;
   busy: boolean;
   incomingLink: string;
+  ask: (question: string) => Promise<any>;
 } | null>(null);
 export function Store({ children }: { children: ReactNode }) {
   const [token, setToken] = useState(session),
@@ -163,6 +164,10 @@ export function Store({ children }: { children: ReactNode }) {
       setBusy(false);
     }
   }
+  async function ask(question: string) {
+    if (!token) throw new Error("Not authenticated");
+    return await api("ask", token, "POST", { question });
+  }
   const feedback = error && (
     <aside className="storage-warning" role="alert">
       {error}{" "}
@@ -223,7 +228,7 @@ export function Store({ children }: { children: ReactNode }) {
       </main>
     );
   return (
-    <Context.Provider value={{ state, dispatch, busy, incomingLink }}>
+    <Context.Provider value={{ state, dispatch, busy, incomingLink, ask }}>
       {feedback}
       {busy && (
         <div className="saving" role="status">

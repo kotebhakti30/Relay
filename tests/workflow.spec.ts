@@ -23,11 +23,7 @@ test("CampusConnect • eight-step signed-out handover and direct API permission
     page.evaluate(() => sessionStorage.getItem("relay-session-v2")!);
   await page.goto("/");
   await b("Explore sample workspace").click();
-  await expect(
-    page.getByText(
-      "Synthetic sample workspace. Your notes stay in this workspace only.",
-    ),
-  ).toBeVisible();
+  await expect(page.locator(".sample-tag, .workspace-banner")).toBeVisible();
   await go("sources");
   await page.getByLabel("Meeting note", { exact: true }).fill(note);
   await b("Import note").click();

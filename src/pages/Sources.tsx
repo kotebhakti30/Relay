@@ -13,7 +13,7 @@ export function Sources() {
       <Heading
         eyebrow="01 / CONNECT"
         title="Bring the context together."
-        description="Inspect the synthetic sample records or import a meeting note of your own."
+        description="Inspect the connected source records or import a meeting note of your own."
         action={
           <Link className="button primary" to="/reconstruct">
             Next: reconstruct
@@ -109,7 +109,7 @@ export function Sources() {
             <Badge>
               {r.reference === r.id && r.id.length === 36
                 ? "Imported note"
-                : "Synthetic sample"}
+                : "Connected source"}
             </Badge>
             <h2>{r.title}</h2>
             <p>

@@ -84,7 +84,7 @@ export function Overview() {
           <div className="flex gap-2 items-center">
             <span className="project-mark">{project.code}</span>
             <Badge>Active sprint</Badge>
-            <span className="hero-kicker">SYNTHETIC PROJECT</span>
+            <span className="hero-kicker">PROJECT CONTEXT</span>
           </div>
           <h2>{project.name}</h2>
           <p>
@@ -301,7 +301,7 @@ export function Overview() {
                 </span>
                 <div>
                   <strong>Explore project sources</strong>
-                  <p>Start with the synthetic repository and meeting notes.</p>
+                  <p>Start with repository and meeting notes.</p>
                 </div>
                 <ArrowUpRight size={14} />
               </Link>

@@ -68,7 +68,7 @@ export async function seed(client) {
       [w, id, title, type, author, days, text, visibility],
     );
   await client.query(
-    "INSERT INTO audit_log(workspace,actor,type,detail) VALUES ($1,'Riya','Workspace','Created CampusConnect with five synthetic records.')",
+    "INSERT INTO audit_log(workspace,actor,type,detail) VALUES ($1,'Riya','Workspace','Created CampusConnect with five initial records.')",
     [w],
   );
   return w;

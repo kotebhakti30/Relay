@@ -37,6 +37,8 @@ import { Knowledge, RecordPage } from "./pages/Knowledge";
 import { Review, Gaps } from "./pages/Review";
 import { Handover, Plan } from "./pages/Handover";
 import { History as HistoryPage } from "./pages/History";
+import { About } from "./pages/About";
+import { AskRelay } from "./components/AskRelay";
 import { Modal } from "./components/UI";
 import type { Role } from "./domain/types";
 const navigation = [
@@ -170,9 +172,9 @@ function Shell() {
               People in control.
             </p>
           </div>
-          <button className="sidebar-about" onClick={() => setAbout(true)}>
+          <NavLink to="/about" className="sidebar-about">
             About Relay <ArrowUpRight size={14} />
-          </button>
+          </NavLink>
           <div className="sidebar-user">
             <span className="avatar">
               {actorName[0]}
@@ -211,10 +213,11 @@ function Shell() {
           <label className="project-switch">
             <span className="tiny-project">{current.code}</span>
             <strong>{current.name}</strong>
+            {p.sample && <span className="sample-tag">Sample</span>}
           </label>
           <div className="topbar-right">
             <span className="workspace-pill">
-              <span /> {p.sample ? "Sample data" : p.organisation}
+              <span /> {p.organisation}
             </span>
             <strong>
               {state.role === "reviewer"
@@ -224,7 +227,7 @@ function Shell() {
             {p.sample && state.role === "reviewer" && (
               <button className="reset-button" onClick={() => setReset(true)}>
                 <RotateCcw size={15} />
-                Reset sample workspace
+                Reset workspace
               </button>
             )}
           </div>
@@ -242,9 +245,6 @@ function Shell() {
             Quick tour
           </button>
         </div>
-        <p className="notice workspace-banner">
-          Synthetic sample workspace. Your notes stay in this workspace only.
-        </p>
         {guide >= 0 && (
           <section className="panel">
             <h2>Quick tour</h2>
@@ -253,8 +253,7 @@ function Shell() {
               <li>Run Reconstruction and inspect an exact quotation.</li>
               <li>Review the candidates, choose the incoming member and approve.</li>
               <li>
-                Open the incoming member’s link in another browser, complete a task and
-                acknowledge receipt.
+                Click “Open as incoming member” to open the recipient view in one click (or share the manual link and code), complete a task and acknowledge receipt.
               </li>
             </ol>
           </section>
@@ -330,14 +329,17 @@ function Shell() {
                 </Guard>
               }
             />
+            <Route path="/about" element={<About />} />
+            <Route path="/limitations" element={<About />} />
             <Route path="*" element={<section className="panel"><h1>Page unavailable</h1><p>This address does not match a page in your workspace.</p><NavLink to="/">Return to overview</NavLink></section>} />
           </Routes>
         </main>
         <footer>
           <span>Relay · v2.0.0 · Build {__RELAY_BUILD__}</span>
-          <span><button onClick={() => setAbout(true)}>About &amp; limitations</button></span>
+          <span><NavLink to="/about">About &amp; limitations</NavLink></span>
         </footer>
       </div>
+      <AskRelay />
       {toast && state.role === "reviewer" && (
         <div role="status" className="toast">
           <CheckIcon />
@@ -351,10 +353,10 @@ function Shell() {
         </div>
       )}
       {reset && (
-        <Modal title="Reset this sample workspace?" onClose={() => setReset(false)}>
+        <Modal title="Reset workspace?" onClose={() => setReset(false)}>
           <p>
             This retires your workspace and its links, and starts a fresh
-            sample workspace.
+            workspace.
           </p>
           <div className="actions">
             <button onClick={() => setReset(false)}>Keep my progress</button>
@@ -377,8 +379,9 @@ function Shell() {
       {about && (
         <Modal title="About & limitations" onClose={() => setAbout(false)}>
           <p>
-            Relay uses signed anonymous access links and PostgreSQL. Synthetic
-            records illustrate the handover. Notes are imported and processed on
+            Relay uses signed anonymous access links and PostgreSQL. The records
+            in the sample workspace are fictional and illustrate the handover.
+            Notes are imported and processed on
             the server. Candidate labels identify the extractor. This release uses
             simplified bearer-link access without OAuth. Company signup, email verification, email password reset and external source connectors are unavailable. Extraction uses a configured AI provider or deterministic rules. Inspect the extractor and exact quotations on each claim.
           </p>

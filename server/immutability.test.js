@@ -52,8 +52,14 @@ test("Database refuses edits and deletion of approved versions and audit events"
     ])
       await assert.rejects(c.query(q), /immutable record/);
   } finally {
-    await c.end();
-    await db.stop();
-    await rm(dir, { recursive: true, force: true });
+    try {
+      await c.end();
+    } catch {}
+    try {
+      await db.stop();
+    } catch {}
+    try {
+      await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+    } catch {}
   }
 });

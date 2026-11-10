@@ -70,6 +70,9 @@ export function Handover() {
               <h2>Share with {p.incoming}</h2>
               {incomingLink ? (
                 <>
+                  <p className="share-note">
+                    Share this link and code with the incoming person.
+                  </p>
                   <label>
                     {p.incoming}’s access link
                     <input
@@ -85,32 +88,34 @@ export function Handover() {
                   <p>
                     Open the link, or enter this code on Relay’s start screen.
                   </p>
-                  <a
-                    className="button primary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    href={incomingLink}
-                  >
-                    Open as incoming member
-                  </a>
-                  <button
-                    onClick={() =>
-                      dispatch({ type: "share", action: "revoke" })
-                    }
-                  >
-                    Revoke access
-                  </button>
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <a
+                      className="button primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      href={incomingLink}
+                    >
+                      Open as incoming member
+                    </a>
+                    <button
+                      onClick={() =>
+                        dispatch({ type: "share", action: "revoke" })
+                      }
+                    >
+                      Revoke access
+                    </button>
+                    <button
+                      onClick={() =>
+                        dispatch({ type: "share", action: "regenerate" })
+                      }
+                    >
+                      Regenerate link and code
+                    </button>
+                  </div>
                 </>
               ) : (
                 <p>Sharing is revoked.</p>
               )}
-              <button
-                onClick={() =>
-                  dispatch({ type: "share", action: "regenerate" })
-                }
-              >
-                Regenerate link and code
-              </button>
             </section>
           )}
           <div className="notice">

@@ -3,6 +3,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { fail, field, transaction } from "./db.js";
 import { issue, verify } from "./session.js";
 import { extract } from "./extract.js";
+import { askRelay } from "./chat.js";
 import { sampleProject, seed } from "./seed.js";
 const actor = (role) => (role === "incoming" ? sampleProject.incoming : sampleProject.lead);
 function source(r) {
@@ -228,6 +229,16 @@ export async function request(method, path, header, b, ip) {
         );
       }
       fail(404, "Unknown route.");
+    }
+    if (route === "POST ask" || route === "POST chat") {
+      return await askRelay({
+        db,
+        w,
+        role,
+        question: b.question,
+        ip: ipKey,
+        logFn: log,
+      });
     }
     if (role === "incoming") {
       const v = (await versions(db, w, role)).at(-1);
