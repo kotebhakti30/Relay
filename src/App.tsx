@@ -340,7 +340,7 @@ function Shell() {
           </Routes>
         </main>
         <footer>
-          <span>Relay · DEV404</span>
+          <span>Relay · Build {__RELAY_BUILD__}</span>
           <span>Sample records and imported notes · Server-enforced roles</span>
         </footer>
       </div>
@@ -393,6 +393,7 @@ function Shell() {
     </div>
   );
 }
+declare const __RELAY_BUILD__: string;
 function CheckIcon() {
   return <ShieldCheck size={19} />;
 }

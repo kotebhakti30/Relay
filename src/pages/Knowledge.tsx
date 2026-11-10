@@ -16,7 +16,7 @@ const categories = [
   "Unresolved questions",
 ];
 export function Knowledge({ explorer = false }: { explorer?: boolean }) {
-  const { state, p } = useStore();
+  const { state, p, dispatch, busy } = useStore();
   const { id } = useParams();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All categories");
@@ -24,6 +24,8 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
   const [sort, setSort] = useState("Newest evidence");
   const [selected, setSelected] = useState("");
   const [edit, setEdit] = useState<Claim | null>(null);
+  const [adding, setAdding] = useState("");
+  const [note, setNote] = useState("");
   const all = visibleClaims(p, state.role);
   const rs = visibleRecords(p, state.role);
   const list = all
@@ -147,6 +149,23 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                 {chosen ? (
                   <>
                     <Evidence claim={chosen} records={rs} />
+                    {state.role === "reviewer" && (
+                      <div className="actions">
+                        <button onClick={() => { setAdding(chosen.id); setNote(""); }}>Add supporting note</button>
+                        {adding === chosen.id && <form onSubmit={async event => {
+                          event.preventDefault();
+                          if (!await dispatch({type: "import", text: note, title: "Supporting note", visibility: chosen.restricted ? "lead_only" : "all"})) return;
+                          setAdding("");
+                          setNote("");
+                          await dispatch({type: "reconstruct"});
+                        }}>
+                          <label>Supporting source text<textarea autoFocus required maxLength={8000} value={note} onChange={e => setNote(e.target.value)}/></label>
+                          <p>Relay checks which claims this source supports during reconstruction.</p>
+                          <button disabled={busy || !note.trim()}>Save note and reconstruct</button>
+                          <button type="button" disabled={busy} onClick={() => setAdding("")}>Cancel</button>
+                        </form>}
+                      </div>
+                    )}
                     {state.role === "reviewer" && (
                       <button
                         className="primary mt-6"

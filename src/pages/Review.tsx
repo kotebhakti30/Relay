@@ -14,7 +14,7 @@ export function Review() {
   const [audience, setAudience] = useState(false);
   const [appropriate, setAppropriate] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const errors = approvalErrors(p);
+  const errors = [...approvalErrors(p), ...(!audience ? ["Choose a target audience."] : []), ...(!appropriate ? ["Confirm the included information is appropriate for this audience."] : [])];
   const reviewed = p.claims.filter((c) => c.review !== "Pending Review").length;
   const list = p.claims.filter(
     (c) => filter === "All decisions" || c.review === filter,
@@ -142,7 +142,7 @@ export function Review() {
               Approve Handover
             </button>
             <small>
-              Creates an versioned database snapshot. Later edits require a new
+              Creates a versioned database snapshot. Later edits require a new
               approval.
             </small>
           </aside>
