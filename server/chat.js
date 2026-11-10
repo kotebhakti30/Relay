@@ -57,7 +57,14 @@ export function classifyIntent(question, role, permittedClaims = []) {
     return "about_product";
   }
 
-  // 6. Differentiate project questions vs general knowledge
+  // 6. General knowledge definitions
+  if (
+    /^(what is|what are|explain|define)\s+(an?\s+)?(oauth|rest|api|database|postgresql|jwt|docker|kubernetes|http|json|sql|git|token|cookie|auth0)[?!.,\s]*$/i.test(q)
+  ) {
+    return "general_knowledge";
+  }
+
+  // Differentiate project questions vs general knowledge
   const projectKeywords = new Set([
     "nightly", "digest", "cron", "job", "aarav", "kabir", "neha", "riya", "isha", "meera",
     "payment", "staging", "issue", "34", "gh-34", "ch-1", "tb-1", "mn-1",
