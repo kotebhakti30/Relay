@@ -1,5 +1,6 @@
 import { fail } from "./db.js";
 import { permitted } from "./workflow.js";
+import { sampleProject } from "./seed.js";
 
 const STOP_WORDS = new Set([
   "a", "an", "the", "is", "are", "was", "were", "what", "who", "where",
@@ -7,13 +8,106 @@ const STOP_WORDS = new Set([
   "about", "this", "that", "does", "will", "can", "tell", "me"
 ]);
 
-function tokenize(text) {
+export function tokenize(text) {
   return (text || "")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim()
     .split(/\s+/)
     .filter((w) => w.length >= 2 && !STOP_WORDS.has(w));
+}
+
+export function classifyIntent(question, role, permittedClaims = []) {
+  const q = (question || "").trim().toLowerCase();
+
+  // 1. Unsafe / Prompt injection
+  if (
+    /\b(ignore (all )?previous instructions|system override|jailbreak|disregard (all )?prior|you are now|output .*pwned|reveal (all )?passwords|show (system )?prompt)\b/i.test(q)
+  ) {
+    return "unsafe";
+  }
+
+  // 2. Restricted content (for incoming member)
+  if (
+    role === "incoming" &&
+    /\b(contingency|vendor|budget risk|budget deficit|vendor budget|lead-only|private|unapproved|secret|confidential)\b/i.test(q)
+  ) {
+    return "restricted";
+  }
+
+  // 3. Greeting / small talk
+  if (
+    /^(hi+|hello+|hey+|howdy|greetings|good (morning|afternoon|evening|day)|sup|what's up|yo)[!.,?\s]*$/i.test(q) ||
+    /^(who are you|what can you do|how are you|how are you doing)[!.,?\s]*$/i.test(q)
+  ) {
+    return "greeting";
+  }
+
+  // 4. About me (role, identity, permissions)
+  if (
+    /\b(what is my role|who am i|my permissions|what can i see|my role|what role am i|what access do i have|tell me my role)\b/i.test(q)
+  ) {
+    return "about_me";
+  }
+
+  // 5. About product (how Relay works, pages, features)
+  if (
+    /\b(how does relay work|what is relay|what does relay do|how to use relay|what is this app|what does (this|the) (page|screen) do|how to approve|how to reconstruct|how does handover work)\b/i.test(q)
+  ) {
+    return "about_product";
+  }
+
+  // 6. Differentiate project questions vs general knowledge
+  const projectKeywords = new Set([
+    "nightly", "digest", "cron", "job", "aarav", "kabir", "neha", "riya", "isha", "meera",
+    "payment", "staging", "issue", "34", "gh-34", "ch-1", "tb-1", "mn-1",
+    "blocker", "decision", "risk", "ownership", "handover", "owner", "sprint", "task",
+    "claim", "evidence", "quotation", "source", "author"
+  ]);
+
+  const tokens = tokenize(q);
+  const matchesProject = tokens.some((t) => projectKeywords.has(t)) ||
+    permittedClaims.some((c) => {
+      const claimText = `${c.statement} ${c.owner} ${c.category}`.toLowerCase();
+      return tokens.some((t) => t.length >= 3 && claimText.includes(t));
+    });
+
+  if (
+    !matchesProject &&
+    /\b(what is|what are|explain|define|how do|how does|difference between)\b/i.test(q) &&
+    /\b(oauth|rest|api|database|postgresql|jwt|docker|kubernetes|http|json|sql|git|token|cookie|auth0)\b/i.test(q)
+  ) {
+    return "general_knowledge";
+  }
+
+  return "project_question";
+}
+
+function getSuggestedQuestions(permittedClaims) {
+  const suggestions = [];
+  for (const c of permittedClaims) {
+    if (c.category === "Ownership" && c.owner && c.owner !== "Unassigned") {
+      suggestions.push(`Who owns the ${c.statement.replace(/^.* owns (the )?/i, "")}?`);
+    } else if (c.category === "Blockers") {
+      suggestions.push(`Is the ${c.statement.replace(/\..*$/, "")}?`);
+    } else if (c.category === "Decisions") {
+      suggestions.push(`What decisions were made about ${c.statement.replace(/^.* to /i, "")}?`);
+    }
+    if (suggestions.length >= 3) break;
+  }
+
+  // Fallbacks if fewer than 3 claims available
+  const fallbacks = [
+    "Who owns the nightly digest cron job?",
+    "Is the payment API on staging fixed?",
+    "What decisions were made about OAuth?",
+  ];
+  for (const fb of fallbacks) {
+    if (suggestions.length < 3 && !suggestions.includes(fb)) {
+      suggestions.push(fb);
+    }
+  }
+  return suggestions.slice(0, 3);
 }
 
 export async function askRelay({ db, w, role, question, ip, logFn }) {
@@ -87,7 +181,170 @@ export async function askRelay({ db, w, role, question, ip, logFn }) {
   const permittedClaimMap = new Map(permittedClaims.map((c) => [c.id, c]));
   const permittedSourceMap = new Map(permittedSources.map((s) => [s.id, s]));
 
-  // 4. Keyword retrieval / scoring
+  // 4. Intent Classification
+  const intent = classifyIntent(cleanQ, role, permittedClaims);
+
+  // Handle Intent: greeting / small talk
+  if (intent === "greeting") {
+    const greetingMsg =
+      role === "incoming"
+        ? `Hello! I am Ask Relay, your handover assistant ready to help you navigate verified project knowledge.`
+        : `Hello! I am Ask Relay, ready to help you review and trace project facts back to their source evidence.`;
+    const suggestions = getSuggestedQuestions(permittedClaims);
+
+    if (logFn) {
+      await logFn(db, w, role, "Ask Relay", `Greeting: ${cleanQ.slice(0, 50)}`);
+    }
+
+    return {
+      answer: greetingMsg,
+      confidence: "high",
+      intent: "greeting",
+      suggestedQuestions: suggestions,
+      citedClaims: [],
+      citedSources: [],
+      untrustedQuestionLength: cleanQ.length,
+    };
+  }
+
+  // Handle Intent: about_me (No model call needed)
+  if (intent === "about_me") {
+    const actorName = role === "incoming" ? sampleProject.incoming : sampleProject.lead;
+    const roleMsg =
+      role === "reviewer"
+        ? `You are signed in as ${actorName} with the Team Lead / Reviewer role. You have full visibility across all project sources (including lead-only records), candidate claims, and audit history. You can edit claims, publish approved handover snapshots, and manage incoming member access.`
+        : `You are signed in as ${actorName} with the Incoming Developer role. You can see approved, audience-permitted claims and verified public sources in this handover. You cannot see lead-only notes, rejected candidates, or unapproved drafts. You can complete first-week continuation tasks and acknowledge receipt.`;
+
+    if (logFn) {
+      await logFn(db, w, role, "Ask Relay", `About Me: ${cleanQ.slice(0, 50)}`);
+    }
+
+    return {
+      answer: roleMsg,
+      confidence: "high",
+      intent: "about_me",
+      citedClaims: [],
+      citedSources: [],
+      untrustedQuestionLength: cleanQ.length,
+    };
+  }
+
+  // Handle Intent: about_product (No model call needed)
+  if (intent === "about_product") {
+    const productMsg =
+      "Relay helps engineering teams carry project context forward without losing tribal knowledge. Data Sources imports meeting notes; Reconstruction extracts facts with verbatim quotations; Review & Approval lets leads verify candidates before publishing; and Handover delivers an immutable snapshot and first-week plan to incoming members.";
+
+    if (logFn) {
+      await logFn(db, w, role, "Ask Relay", `About Product: ${cleanQ.slice(0, 50)}`);
+    }
+
+    return {
+      answer: productMsg,
+      confidence: "high",
+      intent: "about_product",
+      citedClaims: [],
+      citedSources: [],
+      untrustedQuestionLength: cleanQ.length,
+    };
+  }
+
+  // Handle Intent: restricted (Incoming member asking restricted info)
+  if (intent === "restricted") {
+    const restrictedMsg = "This information is not available for this role.";
+    if (logFn) {
+      await logFn(db, w, role, "Ask Relay", `Restricted query denied: ${cleanQ.slice(0, 50)}`);
+    }
+    return {
+      answer: restrictedMsg,
+      confidence: "restricted",
+      intent: "restricted",
+      citedClaims: [],
+      citedSources: [],
+      untrustedQuestionLength: cleanQ.length,
+    };
+  }
+
+  // Handle Intent: unsafe / prompt injection
+  if (intent === "unsafe") {
+    const safeMsg =
+      "I am Ask Relay and can only answer questions about project handover using permitted evidence. I cannot follow system overrides or prompt injection commands.";
+    if (logFn) {
+      await logFn(db, w, role, "Ask Relay", `Injection attempt blocked: ${cleanQ.slice(0, 50)}`);
+    }
+    return {
+      answer: safeMsg,
+      confidence: "high",
+      intent: "unsafe",
+      citedClaims: [],
+      citedSources: [],
+      untrustedQuestionLength: cleanQ.length,
+    };
+  }
+
+  // Handle Intent: general_knowledge (Send NO project claims to Gemini)
+  if (intent === "general_knowledge") {
+    let generalAnswer = "";
+    if (process.env.LLM_API_KEY && (process.env.LLM_PROVIDER === "gemini" || !process.env.LLM_PROVIDER)) {
+      try {
+        const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": process.env.LLM_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [
+                {
+                  text: "You are a helpful software engineering assistant answering a general technology or computing question. Answer factually and concisely in at most 3 sentences. Do not mention or invent any project or company details.",
+                },
+              ],
+            },
+            contents: [{ parts: [{ text: cleanQ }] }],
+          }),
+          signal: AbortSignal.timeout(8000),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const raw = data?.candidates?.[0]?.content?.parts?.at(-1)?.text;
+          if (raw) generalAnswer = raw.trim();
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+
+    if (!generalAnswer) {
+      if (/oauth/i.test(cleanQ)) {
+        generalAnswer =
+          "OAuth is an open-standard authorization framework that allows third-party applications to obtain limited access to user resources without exposing credentials.";
+      } else {
+        generalAnswer =
+          "This is a general computing concept not defined in your project sources.";
+      }
+    }
+
+    const formattedAnswer = `[General answer, not from your project sources] ${generalAnswer}`;
+
+    if (logFn) {
+      await logFn(db, w, role, "Ask Relay", `General Q: ${cleanQ.slice(0, 50)}`);
+    }
+
+    return {
+      answer: formattedAnswer,
+      confidence: "high",
+      intent: "general_knowledge",
+      isGeneralKnowledge: true,
+      citedClaims: [],
+      citedSources: [],
+      untrustedQuestionLength: cleanQ.length,
+    };
+  }
+
+  // Handle Intent: project_question (Unchanged grounding rules)
   const qTokens = tokenize(cleanQ);
   const scoredClaims = permittedClaims.map((claim) => {
     let score = 0;
@@ -107,21 +364,15 @@ export async function askRelay({ db, w, role, question, ip, logFn }) {
     .slice(0, 5)
     .map((sc) => sc.claim);
 
-  // If no claims matched directly by token, but we have permitted claims, include top 3 general claims as context
   const contextClaims = topClaims.length > 0 ? topClaims : permittedClaims.slice(0, 3);
   const contextSourceIds = new Set(contextClaims.flatMap((c) => c.refs || []));
   const contextSources = permittedSources.filter((s) => contextSourceIds.has(s.id));
 
-  // 5. Check if question asks about restricted information (for incoming role)
-  const isAskingRestricted =
-    role === "incoming" &&
-    /\b(contingency|vendor|budget risk|lead-only|private|unapproved|secret)\b/i.test(cleanQ);
-
-  // 6. Generate answer via Gemini (or fallback if unconfigured/fails)
   let answer = "";
   let citedClaimIds = [];
   let citedSourceIds = [];
   let confidence = "high";
+  let suggestedQuestions = [];
 
   const instruction = [
     "You are Ask Relay, a factual handover assistant for project continuity.",
@@ -215,30 +466,30 @@ export async function askRelay({ db, w, role, question, ip, logFn }) {
 
   // Fallback if Gemini unavailable or not configured
   if (!usedGemini) {
-    if (isAskingRestricted) {
-      answer = "This information is not available for this role.";
-      citedClaimIds = [];
-      citedSourceIds = [];
-      confidence = "restricted";
-    } else if (topClaims.length > 0) {
+    if (topClaims.length > 0) {
       const c = topClaims[0];
       answer = `Based on verified evidence: ${c.statement} (Owner: ${c.owner}, Status: ${c.review}, Evidence: ${c.evidence}).`;
       citedClaimIds = [c.id];
       citedSourceIds = c.refs || [];
       confidence = "high";
     } else {
-      answer = "The provided evidence does not contain sufficient information to answer this question. Please consult the team lead or import a supporting meeting note.";
+      answer = `I searched the permitted handover records for "${cleanQ}", but could not find any recorded facts or evidence. To add this context, import a supporting meeting note in Data Sources or consult the team lead.`;
       citedClaimIds = [];
       citedSourceIds = [];
       confidence = "insufficient_evidence";
+      suggestedQuestions = getSuggestedQuestions(permittedClaims).slice(0, 2);
     }
   }
 
-  // 7. Verify EVERY cited ID exists among the permitted items provided
+  // When confidence is insufficient_evidence, supply 2 related questions that the evidence CAN answer
+  if (confidence === "insufficient_evidence" && suggestedQuestions.length === 0) {
+    suggestedQuestions = getSuggestedQuestions(permittedClaims).slice(0, 2);
+  }
+
+  // Verify EVERY cited ID exists among the permitted items provided
   const verifiedClaimIds = citedClaimIds.filter((id) => permittedClaimMap.has(id));
   const verifiedSourceIds = citedSourceIds.filter((id) => permittedSourceMap.has(id));
 
-  // Build verified citations list with details
   const verifiedClaims = verifiedClaimIds.map((id) => {
     const c = permittedClaimMap.get(id);
     return { id: c.id, statement: c.statement, owner: c.owner, category: c.category };
@@ -249,7 +500,7 @@ export async function askRelay({ db, w, role, question, ip, logFn }) {
     return { id: s.id, title: s.title, author: s.author };
   });
 
-  // 8. Audit log question and answer summary
+  // Audit log question and answer summary
   if (logFn) {
     await logFn(
       db,
@@ -263,6 +514,8 @@ export async function askRelay({ db, w, role, question, ip, logFn }) {
   return {
     answer,
     confidence,
+    intent: "project_question",
+    suggestedQuestions: suggestedQuestions.length > 0 ? suggestedQuestions : undefined,
     citedClaims: verifiedClaims,
     citedSources: verifiedSources,
     untrustedQuestionLength: cleanQ.length,

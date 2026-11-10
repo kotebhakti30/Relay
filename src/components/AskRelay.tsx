@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MessageSquare, Sparkles, X, Send, ShieldCheck, AlertCircle, Lock, ArrowUpRight } from "lucide-react";
+import { Sparkles, X, Send, ShieldCheck, AlertCircle, Lock, ArrowUpRight, BookOpen } from "lucide-react";
 import { useStore } from "../state/Store";
 
 interface CitationClaim {
@@ -19,7 +19,10 @@ interface CitationSource {
 interface Message {
   role: "user" | "assistant";
   content: string;
-  confidence?: "high" | "insufficient_evidence" | "restricted";
+  confidence?: "high" | "insufficient_evidence" | "restricted" | "general_knowledge";
+  intent?: string;
+  isGeneralKnowledge?: boolean;
+  suggestedQuestions?: string[];
   citedClaims?: CitationClaim[];
   citedSources?: CitationSource[];
   timestamp: string;
@@ -72,6 +75,9 @@ export function AskRelay() {
         role: "assistant",
         content: res.answer,
         confidence: res.confidence,
+        intent: res.intent,
+        isGeneralKnowledge: res.isGeneralKnowledge,
+        suggestedQuestions: res.suggestedQuestions || [],
         citedClaims: res.citedClaims || [],
         citedSources: res.citedSources || [],
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -159,7 +165,11 @@ export function AskRelay() {
 
                   {m.confidence && m.role === "assistant" && (
                     <div className="ask-confidence">
-                      {m.confidence === "high" ? (
+                      {m.isGeneralKnowledge || m.confidence === "general_knowledge" ? (
+                        <span className="conf-badge general">
+                          <BookOpen size={12} /> General knowledge (not project data)
+                        </span>
+                      ) : m.confidence === "high" ? (
                         <span className="conf-badge high">
                           <ShieldCheck size={12} /> Verified evidence
                         </span>
@@ -172,6 +182,25 @@ export function AskRelay() {
                           <AlertCircle size={12} /> Insufficient evidence
                         </span>
                       )}
+                    </div>
+                  )}
+
+                  {m.suggestedQuestions && m.suggestedQuestions.length > 0 && (
+                    <div className="ask-followup-suggestions">
+                      <small>Suggested questions:</small>
+                      <div className="starter-list">
+                        {m.suggestedQuestions.map((sq) => (
+                          <button
+                            key={sq}
+                            type="button"
+                            className="starter-btn"
+                            onClick={() => handleSend(sq)}
+                            disabled={loading}
+                          >
+                            {sq}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
