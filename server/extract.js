@@ -198,6 +198,7 @@ export async function extract(records, prior = []) {
         assignment,
         topic,
         links: [],
+        sourceKeys: [key],
       };
       group.links.push({ r, quote, negative: assignment?.negative });
       groups.set(key, group);
@@ -223,9 +224,11 @@ export async function extract(records, prior = []) {
         if (
           key !== toKey &&
           g.topic === target.task &&
-          g.links.every((l) => old.refs.includes(l.r.id))
+          (old.sourceKeys?.includes(key) || old.identity === key ||
+            (!old.identity && g.links.some(l => old.refs[0] === l.r.id && old.quotes?.[l.r.id] === l.quote)))
         ) {
           to.links.push(...g.links);
+          to.sourceKeys.push(key);
           groups.delete(key);
         }
     }
@@ -307,6 +310,7 @@ export async function extract(records, prior = []) {
       claims.push({
         id,
         identity: key,
+        sourceKeys: group.sourceKeys,
         labelHistory: history,
         category: type,
         statement:

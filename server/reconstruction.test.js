@@ -69,3 +69,10 @@ test("a stale note, repeated import or review alone cannot corroborate ownership
     assert.equal(claims[0].evidence, "Insufficient Evidence");
   }
 });
+
+test("a repeated reconstruction keeps the competing owner's distinct pending claim", async () => {
+ const records=[first,confirmation,note("c","Kabir owns the nightly digest cron job.")];
+ const {claims}=await extract(records);const prior=claims.map(c=>c.owner==="Neha"?{...c,review:"Accepted",resolution:"Reviewed competing evidence"}:c);
+ const next=(await extract(records,prior)).claims;
+ assert.deepEqual(next.map(c=>[c.id,c.owner,c.evidence]),claims.map(c=>[c.id,c.owner,c.evidence]));
+});
