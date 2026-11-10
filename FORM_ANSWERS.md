@@ -22,7 +22,7 @@ Team DEV404 · Dhanashree S. Hingnekar and Bhakti S. Kote
 * **AI Provider:** Official Google Gemini API (`gemini-2.5-flash`) via REST with strict JSON schema definitions; deterministic heuristic rules fallback.
 * **Security & Auth:** HMAC-signed session bearer tokens (7-day validity), secret share URLs with hash-fragment tokens (never transmitted in server HTTP referrers), database query-layer access filtering, and input capping (max 8,000 characters per note, max 500 characters per chat prompt).
 * **Database Immutability:** PostgreSQL triggers reject `UPDATE` and `DELETE` queries on approved snapshots (`handover_versions`) and audit trail logs (`audit_log`).
-* **Testing:** 13 server-side unit tests (`node --test`), plus end-to-end browser tests (`@playwright/test`) testing 8-step live journeys and mobile upload against production.
+* **Testing:** 16 server-side unit tests (`node --test`), plus end-to-end browser tests (`@playwright/test`) testing 8-step live journeys, mobile upload, and 6 live chatbot intent queries against production.
 
 ---
 
