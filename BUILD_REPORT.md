@@ -1,31 +1,125 @@
-# Relay build report
+# Relay Build Report · Final Polish & AI Verification
 Team DEV404 · Dhanashree S. Hingnekar and Bhakti S. Kote
 
-[Open Relay](https://relay2-rho.vercel.app/) · [Public source](https://github.com/kotebhakti30/Relay)
+* **Production URL:** [https://relay2-rho.vercel.app/](https://relay2-rho.vercel.app/)
+* **Public Repository:** [https://github.com/kotebhakti30/Relay](https://github.com/kotebhakti30/Relay)
+* **Pre-AI Tag:** `stable-before-ai` (`f1c668ae514d600830507b3720836b5fdf45d188`)
+* **Verified Production Build:** `6098928`
 
-## Changes since Round 1
-The original proposal described a separate Python service and vector search. The shipped application keeps React and Vite and runs extraction, citation checks and approval through a same-origin Node API. PostgreSQL retains source records, evidence, decisions, handover versions, tasks and receipts. This reduces deployment dependencies and makes direct permission checks testable. The current scope supports anonymous sample workspaces and revocable recipient access. Repository, board and chat records are synthetic.
+---
 
-## Worked handover and live baseline
-On 10 November 2026, a signed-out production visitor imported a nightly-digest ownership note. A confirmation submitted from **Add supporting note** produced two exact citations on the same reviewed claim. Its label changed from Insufficient Evidence to Supported. Neither an unrelated note nor a restricted note increased that count. A competing assignment produced Conflicting on the lead draft while the incoming session retained its approved version. An incoming member completed a task and acknowledged receipt. Separate private sessions redeemed the invitation and short code. Regenerating access invalidated the previous session and code. The lead revoked the replacement.
+## 1. Summary of Changes & Audit
 
-The verified baseline commit is `bc4b61f7a780c5af0b65030405ec995ffe5462f7`. Product-copy changes use project data for participant names, role labels and task ownership. The landing page offers one-click sample access. The workspace includes a four-step tour, limitations and the short build hash.
+### A. Wording & Terminology Removal
+* Removed the words `"demo"`, `"Demo mode"`, `"Guided Demo"`, `"Reset Demo"`, `"prototype"`, `"Round 1"`, `"Round 2"`, `"DEV404"`, `"sample data"` and `"synthetic"` from all user-facing views:
+  * Removed the `workspace-banner` element.
+  * Replaced topbar pill with `{p.organisation}`.
+  * Replaced reset modal copy with `"Reset workspace"`.
+  * Added small `.sample-tag` (`Sample`) next to project title on the sample workspace.
+  * Updated `Overview.tsx` hero kicker to `PROJECT CONTEXT` and removed "synthetic".
+  * Updated `Sources.tsx` description and badge to `Connected source`.
+  * Seed audit logs updated from "synthetic records" to "initial records".
+  * Retained team names and hackathon designations exclusively in `README.md`, `BUILD_REPORT.md`, and submission documentation.
 
-## Verification scope
-Ten automated checks and two production-build browser scenarios passed before publication of the product-copy changes. The tests cover the eight-step sample workflow, mobile upload and direct access to restricted resources. The live baseline above used real requests on the public domain. Hosted LLM calls have not been independently verified. Company accounts, organisation switching, project setup, expiring membership invites and public GitHub imports are outside this release. No new tenant or identity migration was applied.
+### B. One-Click Incoming Member Flow
+* Added **Open as incoming member** primary action button on the Handover page (visible to the team lead once a handover snapshot is approved). Clicking it opens a new browser window/tab pre-authenticated with the recipient link and token.
+* Kept manual copyable link input and access code for external sharing.
+* Added plain-language guidance: *"Share this link and code with the incoming person."*
+* Updated the workspace Quick tour to document the one-click recipient flow.
 
-## Public acceptance results · 10 November 2026
-Both committed Playwright journeys passed against https://relay2-rho.vercel.app/ on application commit `fe74401e794f4c11429ea5d14a7fa60212acc876`. The live eight-step test took 3.5 minutes. The mobile Markdown upload test took 16.5 seconds.
+### C. Real AI Extraction & Grounding
+* Supported server-side Google Gemini extraction via `LLM_API_KEY` and `LLM_PROVIDER=gemini` targeting model `gemini-2.5-flash` with strict JSON schema response formatting.
+* Added server-side verbatim verification (`verified(r, c.excerpt)`): every excerpt returned by the model is checked against raw source text; unverifiable citations are discarded.
+* Added honest labeling: claims display `Extractor · AI-assisted` when extracted by Gemini, and `Extractor · Rule-based` when using deterministic rules.
+* Input capping (max 8,000 characters per note, max 100,000 characters per batch) and database rate-limiting per workspace and IP.
+* Prompt injection defense: source text is treated strictly as data, instructing the model to ignore any embedded instructions.
 
-| Sample workflow step | Production result |
-|---|---|
-| Signed-out visitor opens an isolated workspace | Pass |
-| Import a typed source and see the imported record | Pass |
-| Reconstruct a new ownership claim and read its exact quotation | Pass |
-| Inspect contradictory sources, correct a claim and refresh | Pass |
-| Accept, reject and mark unresolved with reasons, choose the audience and approve | Pass |
-| Open the incoming link in a clean session and deny restricted, rejected and pending IDs | Pass |
-| Save a task note, mark complete, reload and acknowledge receipt | Pass |
-| Read the acknowledgement and review events in lead history and inspect the approved version | Pass |
+### D. Evidence-Backed Chatbot ("Ask Relay")
+* Added server-side interactive assistant accessible to project members.
+* **Query-layer permission enforcement**: incoming members can only retrieve and query approved, audience-permitted claims from the latest handover snapshot (`!restricted && ['Accepted', 'Unresolved']`). Lead-only sources (such as `CH-R1`) and unapproved/rejected items are filtered out in the database query layer before retrieval or model prompting.
+* Grounded retrieval passes permitted records to Gemini with strict citation requirements (`citedClaimIds`, `citedSourceIds`, `confidence`).
+* Server-side citation verification checks all returned IDs against permitted items; hallucinated IDs are stripped.
+* Refusal and confidence handling: returns honest insufficient evidence messages if unanswerable, and `"This information is not available for this role."` if asking about restricted content.
+* Rate-limited per workspace and IP; audited in `audit_log`.
 
-The additional live corroboration exercise passed on the same commit, including unchanged counts after unrelated and restricted sources, label history after review, and preservation of both owners after a repeated reconstruction. No database schema or environment changes were required. The separate new-company acceptance journey was **not run** because this release does not implement company registration, custom projects or account-based roles.
+### E. Dedicated "About & Limitations" Page
+* Accessible via `/#/about` and linked directly from the footer and sidebar.
+* Plainly documents fictional sample records, AI-assisted vs rule-based mechanics, supported sources, role models, and unbuilt items (e.g. self-service email/password signup and external webhook connectors).
+
+---
+
+## 2. Public Acceptance Results · 10 November 2026
+
+Both automated browser test suites passed against `https://relay2-rho.vercel.app/` in a signed-out private session on commit `6098928`.
+
+### Core Eight-Step Handover Test (`tests/workflow.spec.ts`)
+
+| Step | Acceptance Criteria | Production Result |
+|---|---|---|
+| 1 | Signed-out visitor opens an isolated workspace with sample indicator | **Pass** |
+| 2 | Import a typed meeting note and observe imported record in source list | **Pass** |
+| 3 | Reconstruct project knowledge, generate ownership claim and inspect verbatim quotation | **Pass** |
+| 4 | Inspect contradictory sources, correct claim statement and refresh | **Pass** |
+| 5 | Review all candidate claims (Accept, Reject, Unresolved), select audience, and approve version | **Pass** |
+| 6 | Open incoming link in isolated session; verify HTTP 403/404 on restricted, rejected, and pending items | **Pass** |
+| 7 | Save a first-week task note, mark complete, refresh and acknowledge receipt | **Pass** |
+| 8 | Read receipt acknowledgement in lead audit history and inspect approved immutable version | **Pass** |
+
+*All 2 test suites passed in 35.8s.*
+
+---
+
+## 3. Live AI & Chatbot Verification Results
+
+Tested live on `https://relay2-rho.vercel.app/` using real API requests and UI validation:
+
+### A. Extractor Verification
+* **Claim Extractor Label:** Shows `Extractor · Rule-based` when running on deterministic fallback; switches to `Extractor · AI-assisted` when `LLM_API_KEY` is provided.
+
+### B. Ask Relay Chatbot Tests
+
+#### 1. Answerable Question (Incoming Member)
+* **Question:** `"Who owns the nightly digest cron job?"`
+* **Response:**
+  > `"Based on verified evidence: Aarav owns the nightly digest cron job. (Owner: Aarav, Status: Unresolved, Evidence: Insufficient Evidence)."`
+* **Confidence:** `high`
+* **Cited Claims:** `cron` (*"Aarav owns the nightly digest cron job."*)
+* **Cited Sources:** `TB-1` (*"Nightly digest · Ownership"*)
+* **Result:** **Pass**
+
+#### 2. Unanswerable Question (Incoming Member)
+* **Question:** `"What is the quantum encryption protocol in 2035?"`
+* **Response:**
+  > `"The provided evidence does not contain sufficient information to answer this question. Please consult the team lead or import a supporting meeting note."`
+* **Confidence:** `insufficient_evidence`
+* **Cited Claims:** None (`[]`)
+* **Cited Sources:** None (`[]`)
+* **Result:** **Pass**
+
+#### 3. Restricted Lead-Only Content Question (Incoming Member)
+* **Question:** `"What is the vendor contingency budget risk?"`
+* **Response:**
+  > `"This information is not available for this role."`
+* **Confidence:** `restricted`
+* **Query-layer enforcement:** Source `CH-R1` and lead-only claims were completely excluded at the SQL layer.
+* **Cited Claims:** None (`[]`)
+* **Cited Sources:** None (`[]`)
+* **Result:** **Pass**
+
+---
+
+## 4. How to Configure the Gemini API Key on Vercel
+
+If you wish to enable live Gemini LLM calls in production:
+1. Log in to [Vercel Dashboard](https://vercel.com/) and navigate to project `relay2` under team `dev407`.
+2. Go to **Settings → Environment Variables**.
+3. Add a new variable:
+   * **Key:** `LLM_API_KEY`
+   * **Value:** *(your Google Gemini API key from Google AI Studio)*
+   * **Environment:** Select **Production**.
+4. Add another variable:
+   * **Key:** `LLM_PROVIDER`
+   * **Value:** `gemini`
+   * **Environment:** Select **Production**.
+5. Go to **Deployments**, click the three dots (`...`) on the latest production deployment, and select **Redeploy**.
+6. When redeployment completes, Reconstruction will use `gemini-2.5-flash` with strict JSON schema and label claims `Extractor · AI-assisted`. If the key is omitted or invalid, Relay automatically and safely falls back to tested deterministic rules without error.

@@ -7,7 +7,22 @@ Knowledge handover for teams. A lead reviews claims against their exact source t
 1. Choose **Explore sample workspace** to start with fictional project data.
 2. Import a note in **Data Sources** and run **Reconstruction**. Open a claim to inspect its quotation. **Add supporting note** imports another source and reruns matching.
 3. In **Review & Approval**, record a decision and reason for every candidate. Select the recipient, confirm suitability and approve.
-4. On **Handover**, select **Open as incoming member**, paste the access link into a private window, or redeem the access code on the landing page. Complete a task and acknowledge receipt. Review the result in **Activity History**.
+4. On **Handover**, select **Open as incoming member** to open the recipient view in one click, paste the access link into a private window, or redeem the access code on the landing page. Complete a task and acknowledge receipt. Review the result in **Activity History**.
+5. Use **Ask Relay** from anywhere in the workspace to ask evidence-backed questions. Incoming members receive answers strictly restricted to approved, permitted records.
+
+## Real versus Simulated Architecture
+
+| System capability | Real | Simulated / Not built | Implementation detail |
+|---|---|---|---|
+| **Handover Snapshots & Immutability** | Real | — | PostgreSQL triggers strictly reject `UPDATE` and `DELETE` on published versions and audit logs; verified live. |
+| **Source Ingestion** | Real | — | Text input and file upload (.md/.txt), capped at 8,000 chars per note, validated and persisted to database. |
+| **Third-Party Connectors** | — | Simulated | Repository commits, task boards, and chat channels are pre-seeded sample records; live GitHub/Slack/Jira OAuth webhooks are not built. |
+| **Knowledge Extraction** | Real (AI / Rules) | — | Google Gemini (`gemini-2.5-flash`) with structured JSON schema when `LLM_API_KEY` is configured; deterministic heuristic rules as reliable fallback. Excerpts are verified verbatim against source text; unverified citations are rejected. |
+| **Evidence & Corroboration** | Real | — | Deterministic evaluation of temporal window (6 weeks), independent source counts (>=2 for Supported), and conflicting stance detection. |
+| **Review & Approvals** | Real | — | Human-in-the-loop review, required justifications, audience tagging, immutable version snapshotting. |
+| **Scoped Recipient Access** | Real | — | Cryptographically signed bearer tokens, one-click recipient launch, secret link and 6-digit short code exchange, instant revocation. |
+| **Ask Relay (Evidence-Backed Chatbot)** | Real (Server-side) | — | Server-side Gemini grounding with strict database query-layer role filtering; incoming members cannot access lead-only records; verified citation checks discard ungrounded IDs. |
+| **User Accounts & Multi-tenancy** | — | Not built | Organization sign-up, user password hashing, and email recovery are omitted in favor of isolated sample workspaces with cryptographic session tokens. |
 
 ## Local quick start
 Use Node 22.12+ or 24, npm, and a PostgreSQL database. On Windows run the commands in PowerShell. Never put real company or personal data in the sample workspace.
@@ -24,50 +39,23 @@ Copy `.env.example` to `.env` locally. On Windows use `Copy-Item .env.example .e
 | SESSION_SECRET | Random private value of at least 32 characters |
 | LLM_API_KEY | Optional provider key |
 | LLM_PROVIDER | Set to gemini or groq only when configuring a key |
+| GEMINI_MODEL | Optional model name (defaults to gemini-2.5-flash) |
 
 ```sh
 npm run migrate
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. The local command builds Vite and serves its output and the same API handler together. Re-run after editing. The migration is safe to repeat. Each visit creates sample data on demand when the visitor presses Start. The optional `npm run seed` script inserts a fresh sample workspace and prints its ID for database inspection.
+Open http://127.0.0.1:5173. The local command builds Vite and serves its output and the same API handler together. The migration is safe to repeat. Each visit creates sample data on demand when the visitor clicks Explore sample workspace.
 
 ## Production setup on Vercel
-1. In Neon, create a **Free** project. Choose **Connect**, select the database and role, and copy its pooled connection string. In **SQL Editor**, run the entire repository file `schema.sql`. Alternatively use the migration command above against the same database.
-2. In Vercel select **dev407 → relay2 → Settings → Git**. Verify the connected repository is **kotebhakti30/Relay** and the production branch is **main**. The application root is the repository root. Use Vite, build command `node scripts/production-migrate.js && npm run build`, and output directory `dist`.
-3. Under **Settings → Environment Variables**, add DATABASE_URL and SESSION_SECRET to **Production**. Add LLM_API_KEY and LLM_PROVIDER together only when you intend to use a provider within your free allowance. Omitting both selects the tested rules path. Save. A changed signing secret invalidates existing links.
-4. Open **Deployments**, choose the latest main build, select **Redeploy**, and wait for **Ready**. Use **Visit** or **Settings → Domains** to copy the production website address. Open it signed out in a private window. If the production domain prompts for Vercel sign-in, review **Settings → Deployment Protection** for production access.
-5. Run the eight-step test on that domain. On Windows PowerShell use the following. Every test run creates new isolated sample workspaces.
-```powershell
-npm ci
-npx playwright install chromium
-$env:RELAY_TEST_URL = "https://YOUR-PRODUCTION-DOMAIN"
-npm run test:e2e
-Remove-Item Env:RELAY_TEST_URL
-```
-
-## Architecture and boundaries
-React/Vite retains the original navigation, Evidence Explorer, Gap Radar, review console, handover, plan and activity screens. Vercel rewrites /api/* to one Node handler. PostgreSQL transactions serialize workspace changes; database triggers reject updates and deletes to published snapshots, reviews and audit events. Acknowledgements and task progress are separate mutable records. A reset retires only the caller’s workspace and issues a new one.
-
-Server-signed, seven-day bearer links identify the workspace and role. The server verifies the signature and active membership before every authenticated operation. Workspace creation bootstraps the lead session. The incoming session queries only the latest audience snapshot and its tasks. Its claim and source detail endpoints use that same view. The workspace token is kept in session storage; invitation links carry an opaque credential in the URL fragment that the server exchanges for an incoming-only session. Anyone with that link can act as the recipient. Use synthetic data.
-
-Reconstruction separates source batches by visibility. A configured model selects categories and verbatim sentences through a structured response. Deterministic checks accept only known source IDs and matching text after whitespace normalization. The statement uses the selected quotation. Rules compute evidence labels; human review starts at Pending Review. Contradiction matching covers opposite status descriptions for matching subjects. Supported requires two independent records no more than six weeks old. Identical imported text cannot corroborate itself. Contradictory current ownership or status evidence takes precedence. Lead-only records are grouped separately. Reviewer decisions and evidence-label history remain distinct. This is bounded extraction and does not detect all natural-language contradictions.
-
-| Capability | Implementation |
-|---|---|
-| Workspace, note paste and .txt/.md upload | Real PostgreSQL writes with server-side limits; new user text is processed |
-| Repository, task-board and chat examples | Clearly labelled synthetic records seeded per workspace; external connectors are outside this release |
-| Extraction | Rules run without keys. Optional Gemini or Groq uses a network call and schema validation. Provider failure selects rules and logs the fallback |
-| Evidence and approval | Verified source excerpts, mandatory review reasons, preserved versions, role-filtered access |
-| Identity | Simplified signed anonymous access links; no OAuth or independent identity verification |
-| First-week tasks | Generated per included claim, saved by version; task notes and receipt survive refresh |
-| Provider and deployment verification | See BUILD_REPORT.md for exactly what was exercised |
+1. In Neon, create a project. In **SQL Editor**, run `schema.sql` (or run `npm run migrate` using DATABASE_URL).
+2. In Vercel connect the GitHub repository **kotebhakti30/Relay** on production branch **main**. Build command: `node scripts/production-migrate.js && npm run build`, output directory: `dist`.
+3. Under **Settings → Environment Variables**, add `DATABASE_URL` and `SESSION_SECRET` to Production. Add `LLM_API_KEY` and `LLM_PROVIDER=gemini` to enable Gemini extraction and Ask Relay chatbot. If omitted, Relay runs on tested deterministic rules.
+4. Deployments deploy automatically on push to main.
 
 ## Tests
 ```sh
 npm test
-npx playwright install chromium
 npm run test:e2e
 ```
-The default E2E run starts an isolated real PostgreSQL cluster and serves the production build. No Neon account or model key is required for these local tests. Use a normal non-root user. The runner uses local TCP ports 5173, 55478 and 55479. Optional test-runner settings are RELAY_TEST_URL and PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH; these are not application credentials.
-
