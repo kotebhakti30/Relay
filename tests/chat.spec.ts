@@ -68,7 +68,13 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
   console.log("Q5 (unanswerable) response:\n" + q5Text + "\n");
   expect(q5Text.toLowerCase()).toMatch(/searched the permitted handover records|insufficient|does not contain/);
 
-  // Approve handover via API for speed, then approve in UI
+  // Close drawer so it doesn't intercept background page clicks
+  const closeBtn = page.getByRole("button", { name: "Close Ask Relay" });
+  if (await closeBtn.isVisible()) {
+    await closeBtn.click();
+  }
+
+  // Approve handover via API for speed, then reload and approve in UI
   const leadToken = await page.evaluate(() => sessionStorage.getItem("relay-session-v2")!);
   const auth = { Authorization: "Bearer " + leadToken };
   const claimsRes = await page.request.get("/api/claims", { headers: auth });
@@ -80,12 +86,13 @@ test("Ask Relay live queries: greeting, role, project Q, general knowledge, unan
         ...c,
         review: "Accepted",
         note: "Accepted for test verification.",
-        verificationOutcome: "Verified",
+        resolution: "Verified checks completed.",
       },
     });
   }
 
   await page.goto("/#/review");
+  await page.reload();
   await page.getByLabel("Target audience").selectOption("incoming");
   await page.getByLabel("I confirm the included information").check();
   await page.getByRole("button", { name: "Approve Handover" }).click();
