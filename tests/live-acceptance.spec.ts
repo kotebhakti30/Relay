@@ -70,7 +70,7 @@ test.describe("Production Live Acceptance Suite", () => {
 
     await page.getByLabel(/Full Name/i).fill("Test Founder");
     await page.getByLabel(/Organisation Name/i).fill("NovaTech Labs");
-    await page.getByLabel(/Work Email/i).fill(uniqueEmail);
+    await page.getByLabel(/Email Address/i).fill(uniqueEmail);
     await page.getByLabel(/Password/i).fill("SecurePassword2026!");
 
     await modal.getByRole("button", { name: /Create Account & Org/i }).click();
@@ -100,6 +100,11 @@ test.describe("Production Live Acceptance Suite", () => {
     await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
+
+    // Ensure knowledge reconstruction has claims
+    await page.goto("/#/reconstruct");
+    await page.getByRole("button", { name: "Reconstruct Project Knowledge" }).click();
+    await expect(page).toHaveURL(/knowledge/);
 
     // Navigate to Review
     await page.goto("/#/review");

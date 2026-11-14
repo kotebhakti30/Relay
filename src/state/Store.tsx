@@ -550,6 +550,13 @@ export function Store({ children }: { children: ReactNode }) {
           initialMode={authModal.mode}
           busy={busy}
         />
+
+        <ProjectWizard
+          isOpen={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          onSubmit={handleCreateProject}
+          busy={busy}
+        />
       </main>
     );
 
