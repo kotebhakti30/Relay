@@ -55,7 +55,7 @@ test.describe("Production Live Acceptance Suite", () => {
 
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.locator(".sample-tag")).toContainText("Sample");
-    await expect(page.getByText("CampusConnect")).toBeVisible();
+    await expect(page.getByText("CampusConnect").first()).toBeVisible();
   });
 
   test("5. Create organisation & Project Setup Wizard: creates custom isolated project", async ({ page, context }) => {

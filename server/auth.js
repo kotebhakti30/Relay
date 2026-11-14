@@ -166,35 +166,52 @@ export async function seedDemoAccount(db) {
     await db.query("SELECT * FROM projects WHERE org_id=$1 LIMIT 1", [org.id])
   ).rows[0];
 
-  if (!project) {
+  let wsActive = false;
+  if (project?.workspace_id) {
+    const wsRow = (
+      await db.query("SELECT active FROM workspaces WHERE id=$1", [project.workspace_id])
+    ).rows[0];
+    if (wsRow && wsRow.active) {
+      wsActive = true;
+    }
+  }
+
+  if (!project || !wsActive) {
     const wsId = await seed(db);
-    const projId = randomUUID();
+    const projId = project?.id || randomUUID();
     await db.query(
       "UPDATE workspaces SET org_id=$1, project_id=$2 WHERE id=$3",
       [org.id, projId, wsId]
     );
-    await db.query(
-      `INSERT INTO projects(id, org_id, name, code, description, departing_name, departing_role, departing_last_day, incoming_name, incoming_role, team_members, workspace_id)
-       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [
-        projId,
-        org.id,
-        sampleProject.name,
-        sampleProject.code,
-        sampleProject.description,
-        sampleProject.departing,
-        "Lead Backend Engineer",
-        "Friday, Sprint 4",
-        sampleProject.incoming,
-        "Incoming Backend Developer",
-        JSON.stringify(sampleProject.people),
-        wsId,
-      ]
-    );
-    await db.query(
-      "INSERT INTO project_members(project_id, account_id, role) VALUES($1, $2, 'admin')",
-      [projId, account.id]
-    );
+    if (!project) {
+      await db.query(
+        `INSERT INTO projects(id, org_id, name, code, description, departing_name, departing_role, departing_last_day, incoming_name, incoming_role, team_members, workspace_id)
+         VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [
+          projId,
+          org.id,
+          sampleProject.name,
+          sampleProject.code,
+          sampleProject.description,
+          sampleProject.departing,
+          "Lead Backend Engineer",
+          "Friday, Sprint 4",
+          sampleProject.incoming,
+          "Incoming Backend Developer",
+          JSON.stringify(sampleProject.people),
+          wsId,
+        ]
+      );
+      await db.query(
+        "INSERT INTO project_members(project_id, account_id, role) VALUES($1, $2, 'admin')",
+        [projId, account.id]
+      );
+    } else {
+      await db.query(
+        "UPDATE projects SET workspace_id=$1 WHERE id=$2",
+        [wsId, projId]
+      );
+    }
     project = { id: projId, name: sampleProject.name, workspace_id: wsId };
   }
 
