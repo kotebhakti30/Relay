@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LogIn, UserPlus, Sparkles, X, Shield, Lock, ArrowRight } from "lucide-react";
 
 interface AuthModalProps {
@@ -26,6 +26,13 @@ export function AuthModal({
   const [name, setName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setError("");
+    }
+  }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
 

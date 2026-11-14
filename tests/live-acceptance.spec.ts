@@ -44,8 +44,8 @@ test.describe("Production Live Acceptance Suite", () => {
     await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
 
     await expect(page.locator(".topbar")).toBeVisible();
-    await expect(page.getByText("Team lead · Riya")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "The project, in flight." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Keep the context. Move forward." })).toBeVisible();
   });
 
   test("4. Explore sample workspace: opens isolated sample workspace", async ({ page, context }) => {
@@ -68,26 +68,26 @@ test.describe("Production Live Acceptance Suite", () => {
     const modal = page.locator(".auth-modal");
     await expect(modal).toBeVisible();
 
-    await page.getByLabel("Full name").fill("Test Founder");
-    await page.getByLabel("Work email").fill(uniqueEmail);
-    await page.getByLabel("Password (min 8 chars)").fill("SecurePassword2026!");
-    await page.getByLabel("Organisation name").fill("NovaTech Labs");
+    await page.getByLabel(/Full Name/i).fill("Test Founder");
+    await page.getByLabel(/Organisation Name/i).fill("NovaTech Labs");
+    await page.getByLabel(/Work Email/i).fill(uniqueEmail);
+    await page.getByLabel(/Password/i).fill("SecurePassword2026!");
 
-    await modal.getByRole("button", { name: "Create organisation" }).click();
+    await modal.getByRole("button", { name: /Create Account & Org/i }).click();
 
     // Wizard opens
-    await expect(page.getByRole("heading", { name: "Create a new project handover" })).toBeVisible();
-    await page.getByLabel("Project name").fill("Core Billing Engine");
-    await page.getByLabel("Project code").fill("CBE");
-    await page.getByRole("button", { name: "Next: Departing Person" }).click();
+    await expect(page.getByRole("heading", { name: "New Handover Project" })).toBeVisible();
+    await page.getByLabel(/Project Name/i).fill("Core Billing Engine");
+    await page.getByLabel(/Project Code/i).fill("CBE");
+    await page.getByRole("button", { name: "Next" }).click();
 
-    await page.getByLabel("Departing person's name").fill("Sarah Jenkins");
-    await page.getByRole("button", { name: "Next: Incoming Person" }).click();
+    await page.getByLabel(/Departing Person's Name/i).fill("Sarah Jenkins");
+    await page.getByRole("button", { name: "Next" }).click();
 
-    await page.getByLabel("Incoming person's name").fill("Marcus Chen");
-    await page.getByRole("button", { name: "Next: Team Members" }).click();
+    await page.getByLabel(/Incoming Person's Name/i).fill("Marcus Chen");
+    await page.getByRole("button", { name: "Next" }).click();
 
-    await page.getByRole("button", { name: "Create project" }).click();
+    await page.getByRole("button", { name: /Create & Open Project/i }).click();
 
     // Verify workspace loaded with dynamic project metadata
     await expect(page.locator(".topbar")).toBeVisible();
@@ -99,6 +99,7 @@ test.describe("Production Live Acceptance Suite", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
     await expect(page.locator(".topbar")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
 
     // Navigate to Review
     await page.goto("/#/review");
@@ -155,6 +156,7 @@ test.describe("Production Live Acceptance Suite", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
     await expect(page.locator(".topbar")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
 
     // Go to deep link
     await page.goto("/#/knowledge");
