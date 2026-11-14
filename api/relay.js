@@ -26,13 +26,34 @@ export default async function handler(req, res) {
         req.socket?.remoteAddress ||
         "unknown",
     ).split(",")[0];
+    let authHeader = req.headers.authorization;
+    if (!authHeader && req.headers.cookie) {
+      const match = req.headers.cookie.match(/(?:^|;\s*)relay_session=([^;]+)/);
+      if (match) {
+        authHeader = "Bearer " + decodeURIComponent(match[1]);
+      }
+    }
+
     const result = await request(
       req.method,
       path,
-      req.headers.authorization,
+      authHeader,
       body,
       ip,
     );
+
+    if (result && result.token) {
+      res.setHeader(
+        "Set-Cookie",
+        `relay_session=${encodeURIComponent(result.token)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`
+      );
+    } else if (path === "auth/logout") {
+      res.setHeader(
+        "Set-Cookie",
+        "relay_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0"
+      );
+    }
+
     return res.status(200).json(result);
   } catch (e) {
     return res

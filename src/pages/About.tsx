@@ -70,10 +70,11 @@ export function About() {
             <h2 className="text-base font-semibold">Supported Sources</h2>
           </div>
           <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
-            <li><strong>Meeting Notes:</strong> Pasted or uploaded Markdown and plain-text meeting notes with title and visibility controls.</li>
+            <li><strong>Meeting Notes:</strong> Pasted or uploaded Markdown and plain-text meeting notes with title and visibility controls (capped at 8,000 characters).</li>
+            <li><strong>GitHub Repository Issues:</strong> Live public GitHub repository issue import via unauthenticated REST API with snapshot permissions, plus structured JSON paste fallback.</li>
+            <li><strong>Clarification Answers:</strong> Structured answers submitted by the departing member linked directly to candidate claims.</li>
             <li><strong>Repository History:</strong> Commit and pull request metadata capturing decisions, bug fixes, and author assignments.</li>
             <li><strong>Task Boards:</strong> Sprint board ownership items and scheduled background jobs.</li>
-            <li><strong>Team Chat Records:</strong> Asynchronous channel updates regarding blockers, release staging, and vendor contingency.</li>
           </ul>
         </section>
 
@@ -84,10 +85,13 @@ export function About() {
           </div>
           <div className="space-y-3 text-sm text-neutral-700">
             <p>
-              <strong>Team Lead / Reviewer:</strong> Has full administrative visibility over the project. Can import sources (team-wide or lead-only), trigger reconstruction, edit statements, set review decisions (Accepted, Rejected, Unresolved), select the handover audience, approve immutable snapshot versions, and manage or revoke incoming member access.
+              <strong>Admin / Team Lead / Reviewer:</strong> Has administrative control over the organization and project. Can create projects via the wizard, invite team members, import sources (team-wide or lead-only), trigger reconstruction, review claims, submit clarification questions to departing members, approve immutable handover versions, and manage or revoke incoming member access.
             </p>
             <p>
-              <strong>Incoming Member:</strong> Authenticates via signed token or revocable link/code. Access is scoped strictly to approved, audience-permitted claims and team-visible evidence. Lead-only records, rejected claims, and pending candidates return HTTP 403/404. Can view continuation tasks, record personal task notes, mark tasks complete, and formally acknowledge receipt.
+              <strong>Departing Member:</strong> Receives clarification questions regarding gaps or conflicting evidence, submits authoritative answers that link as evidence, and views assigned ownership items.
+            </p>
+            <p>
+              <strong>Incoming Member:</strong> Authenticates via secure invite token or revocable link/code. Access is strictly scoped to approved, audience-permitted claims and team-visible evidence. Lead-only records, rejected claims, and pending candidates return HTTP 403/404. Can view continuation tasks, record personal task notes, inspect version diffs, and formally acknowledge or re-acknowledge receipt.
             </p>
           </div>
         </section>
@@ -95,13 +99,12 @@ export function About() {
         <section className="panel border-amber-200 bg-amber-50/30">
           <div className="flex gap-2 items-center mb-3 text-amber-900">
             <AlertCircle size={20} />
-            <h2 className="text-base font-semibold">Current Limitations &amp; What Is Not Built Yet</h2>
+            <h2 className="text-base font-semibold">Current Scope &amp; Stated Limitations</h2>
           </div>
           <ul className="list-disc list-inside space-y-1 text-sm text-amber-950">
-            <li><strong>Account Sign-up &amp; Authentication:</strong> Self-service email/password signup and multi-tenant organization management are not built. Workspaces use isolated, signed cryptographic session tokens.</li>
-            <li><strong>Email Verification &amp; Password Reset:</strong> No transactional email service is attached; password reset and email verification flows are not implemented.</li>
-            <li><strong>Direct External Connectors:</strong> Real-time webhook sync with live GitHub, Jira, or Slack workspaces is not built; data is ingested via text/markdown import and structured records.</li>
-            <li><strong>Input Caps &amp; Rate Limits:</strong> Inputs are capped at 8,000 characters per imported note, and reconstruction and chat queries are rate-limited per workspace and IP.</li>
+            <li><strong>Email Verification &amp; Password Reset:</strong> Self-service email verification and email-based password reset are not built. Password resets must be performed by an organization admin.</li>
+            <li><strong>Private Repository Connectors:</strong> Real-time private repository sync and webhooks (such as Jira or private GitHub with OAuth) are not built. GitHub connector imports public repository issues or structured JSON payloads.</li>
+            <li><strong>Input Caps &amp; Rate Limits:</strong> Text imports are capped at 8,000 characters per note, and reconstruction and chat queries are rate-limited per workspace and IP address.</li>
           </ul>
         </section>
       </div>

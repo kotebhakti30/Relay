@@ -1,5 +1,5 @@
 export type Role = "reviewer" | "incoming" | "departing";
-export type SourceType = "github" | "notes" | "board" | "chat";
+export type SourceType = "github" | "notes" | "board" | "chat" | "clarification";
 export type EvidenceState =
   "Supported" | "Conflicting" | "Insufficient Evidence";
 export type ReviewState =
@@ -120,4 +120,60 @@ export interface PlanTask {
   owner: string;
   claim: Claim;
   dependency: string;
+}
+
+export interface UserAccount {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface Organisation {
+  id: string;
+  name: string;
+  role: "admin" | "member";
+}
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  workspaceId: string;
+  departing: string;
+  departingRole: string;
+  incoming: string;
+  incomingRole: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface ClarificationQuestion {
+  id: string;
+  claimId: string;
+  gapId?: string;
+  question: string;
+  assignedTo: string;
+  dueDate?: string;
+  status: "open" | "answered" | "closed";
+  createdBy: string;
+  createdAt: string;
+  answer?: {
+    id: string;
+    text: string;
+    answeredBy: string;
+    answeredAt: string;
+  };
+}
+
+export interface VersionDiff {
+  fromVersion: number;
+  toVersion: number;
+  summary: string;
+  added: any[];
+  removed: any[];
+  changed: any[];
+  unchangedCount: number;
+  hasMaterialChanges: boolean;
+  role: Role;
 }

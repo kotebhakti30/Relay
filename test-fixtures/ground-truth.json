@@ -1,0 +1,59 @@
+[
+  {
+    "company": "ApexPay (FinTech)",
+    "sourceText": "Sprint review 24: Priya owns the payment retry queue and scheduled cron worker. After benchmark testing, we decided to migrate transaction ledger from MySQL to CockroachDB. Current blocker: Card processor sandbox webhook failure delays settlement testing until Monday.",
+    "expected": [
+      {
+        "category": "Ownership",
+        "keywords": ["Priya", "payment retry queue"],
+        "expectedOwner": "Priya"
+      },
+      {
+        "category": "Decisions",
+        "keywords": ["CockroachDB", "migrate transaction ledger"]
+      },
+      {
+        "category": "Blockers",
+        "keywords": ["Card processor", "sandbox webhook failure", "settlement testing"]
+      }
+    ]
+  },
+  {
+    "company": "HealthBridge (Digital Health)",
+    "sourceText": "Clinical core sync: Carlos owns the HIPAA audit log export service. Architecture decision: Adopted WebRTC with TURN relay fallback for video consultations. Urgent blocker: Prescription signing API token expired in staging blocking pharmacy validation.",
+    "expected": [
+      {
+        "category": "Ownership",
+        "keywords": ["Carlos", "HIPAA audit log"],
+        "expectedOwner": "Carlos"
+      },
+      {
+        "category": "Decisions",
+        "keywords": ["WebRTC", "TURN relay", "video consultations"]
+      },
+      {
+        "category": "Blockers",
+        "keywords": ["Prescription signing API token", "staging"]
+      }
+    ]
+  },
+  {
+    "company": "RoutePulse (Fleet Logistics)",
+    "sourceText": "Dispatch infrastructure retro: Sarah owns the telematics ingestion pipeline. We decided to partition geospatial telemetry by vehicle region to alleviate Redis hotspots. Critical blocker: Kafka broker disk pressure throttling GPS ingest across cluster.",
+    "expected": [
+      {
+        "category": "Ownership",
+        "keywords": ["Sarah", "telematics ingestion pipeline"],
+        "expectedOwner": "Sarah"
+      },
+      {
+        "category": "Decisions",
+        "keywords": ["partition geospatial telemetry", "vehicle region"]
+      },
+      {
+        "category": "Blockers",
+        "keywords": ["Kafka broker disk pressure", "GPS ingest"]
+      }
+    ]
+  }
+]

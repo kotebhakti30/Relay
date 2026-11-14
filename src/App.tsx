@@ -27,8 +27,15 @@ import {
   ArrowRight,
   BookOpen,
   ShieldCheck,
+  HelpCircle,
+  Settings as SettingsIcon,
+  User,
+  LogOut,
+  Plus,
+  ChevronDown,
 } from "lucide-react";
 import { Store, useStore } from "./state/Store";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import { latest } from "./domain/engine";
 import { Overview, Projects } from "./pages/Overview";
@@ -38,6 +45,8 @@ import { Review, Gaps } from "./pages/Review";
 import { Handover, Plan } from "./pages/Handover";
 import { History as HistoryPage } from "./pages/History";
 import { About } from "./pages/About";
+import { Clarifications as ClarificationsPage } from "./pages/Clarifications";
+import { Settings as SettingsPage } from "./pages/Settings";
 import { AskRelay } from "./components/AskRelay";
 import { Modal } from "./components/UI";
 import type { Role } from "./domain/types";
@@ -49,10 +58,12 @@ const navigation = [
   ["/knowledge", "Project Knowledge", BookOpen],
   ["/evidence", "Evidence Explorer", ScanSearch],
   ["/gaps", "Knowledge Gap Radar", Radar],
+  ["/clarifications", "Clarifications", HelpCircle],
   ["/review", "Review & Approval", ClipboardCheck],
   ["/handover", "Handover", Send],
   ["/plan", "First-week Plan", RouteIcon],
   ["/history", "Activity History", History],
+  ["/settings", "Org Settings", SettingsIcon],
 ] as const;
 const incomingPaths = ["/", "/projects", "/handover", "/plan"];
 const departingPaths = [
@@ -61,6 +72,7 @@ const departingPaths = [
   "/knowledge",
   "/evidence",
   "/gaps",
+  "/clarifications",
   "/handover",
   "/plan",
 ];
@@ -77,7 +89,7 @@ function Guard({
   return children;
 }
 function Shell() {
-  const { state, p, dispatch, busy } = useStore();
+  const { state, p, dispatch, busy, user, org, logout, openAuthModal, openWizard } = useStore();
   const loc = useLocation();
   const nav = useNavigate();
   const [reset, setReset] = useState(false);
@@ -85,6 +97,7 @@ function Shell() {
   const [menu, setMenu] = useState(false);
   const [about, setAbout] = useState(false);
   const [toast, setToast] = useState("");
+  const [accountMenu, setAccountMenu] = useState(false);
   const current = p;
   const actorName = state.role === "reviewer" ? p.lead : state.role === "incoming" ? p.incoming : p.departing;
   const event = p.events[0];
@@ -131,14 +144,15 @@ function Shell() {
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Main navigation">
           {navigation
-            .filter(
-              ([path]) =>
-                state.role === "reviewer" ||
-                (state.role === "incoming"
-                  ? incomingPaths
-                  : departingPaths
-                ).includes(path),
-            )
+            .filter(([path]) => {
+              if (path === "/settings") {
+                return state.role === "reviewer" && !!user;
+              }
+              if (state.role === "reviewer") return true;
+              return (
+                state.role === "incoming" ? incomingPaths : departingPaths
+              ).includes(path);
+            })
             .map(([path, label, Icon]) => (
               <NavLink
                 key={path}
@@ -224,6 +238,78 @@ function Shell() {
                 ? `Team lead · ${p.lead}`
                 : `Viewing as Incoming Developer, ${p.incoming}`}
             </strong>
+            {user ? (
+              <div className="account-dropdown-wrapper" style={{ position: "relative" }}>
+                <button
+                  className="button secondary flex items-center gap-2"
+                  onClick={() => setAccountMenu(!accountMenu)}
+                  style={{ padding: "0.35rem 0.65rem", fontSize: "0.85rem", cursor: "pointer" }}
+                >
+                  <User size={15} />
+                  <span>{user.name}</span>
+                  <ChevronDown size={13} />
+                </button>
+                {accountMenu && (
+                  <div
+                    className="account-menu panel"
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "100%",
+                      marginTop: "0.5rem",
+                      width: "220px",
+                      zIndex: 100,
+                      padding: "0.5rem",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    }}
+                  >
+                    <div style={{ padding: "0.5rem", borderBottom: "1px solid var(--border)" }}>
+                      <strong>{user.name}</strong>
+                      <div style={{ fontSize: "0.75rem", color: "var(--muted)" }}>{user.email}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "2px" }}>
+                        Org: {org?.name || p.organisation}
+                      </div>
+                    </div>
+                    <button
+                      className="menu-item"
+                      style={{ width: "100%", textAlign: "left", padding: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", background: "none", border: "none", cursor: "pointer", color: "inherit" }}
+                      onClick={() => {
+                        setAccountMenu(false);
+                        openWizard();
+                      }}
+                    >
+                      <Plus size={14} /> New project
+                    </button>
+                    <NavLink
+                      to="/settings"
+                      className="menu-item"
+                      style={{ width: "100%", textAlign: "left", padding: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none", color: "inherit" }}
+                      onClick={() => setAccountMenu(false)}
+                    >
+                      <SettingsIcon size={14} /> Org settings
+                    </NavLink>
+                    <button
+                      className="menu-item danger"
+                      style={{ width: "100%", textAlign: "left", padding: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", background: "none", border: "none", cursor: "pointer", color: "var(--red, #ef4444)" }}
+                      onClick={() => {
+                        setAccountMenu(false);
+                        logout();
+                      }}
+                    >
+                      <LogOut size={14} /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                className="button secondary"
+                onClick={() => openAuthModal("login")}
+                style={{ padding: "0.35rem 0.65rem", fontSize: "0.85rem", cursor: "pointer" }}
+              >
+                Sign in / Org
+              </button>
+            )}
             {p.sample && state.role === "reviewer" && (
               <button className="reset-button" onClick={() => setReset(true)}>
                 <RotateCcw size={15} />
@@ -312,6 +398,14 @@ function Shell() {
               }
             />
             <Route
+              path="/clarifications"
+              element={
+                <Guard>
+                  <ClarificationsPage />
+                </Guard>
+              }
+            />
+            <Route
               path="/review"
               element={
                 <Guard reviewer>
@@ -326,6 +420,14 @@ function Shell() {
               element={
                 <Guard reviewer>
                   <HistoryPage />
+                </Guard>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Guard reviewer>
+                  <SettingsPage />
                 </Guard>
               }
             />
@@ -396,10 +498,12 @@ function CheckIcon() {
 }
 export default function App() {
   return (
-    <Store>
-      <HashRouter>
-        <Shell />
-      </HashRouter>
-    </Store>
+    <ErrorBoundary>
+      <Store>
+        <HashRouter>
+          <Shell />
+        </HashRouter>
+      </Store>
+    </ErrorBoundary>
   );
 }

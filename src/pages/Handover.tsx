@@ -41,6 +41,7 @@ export function Handover() {
             <div>
               <div className="flex gap-2">
                 <Badge>Approved · v{v.id}</Badge>
+                {v.id > 1 && <Badge>Updated</Badge>}
                 <Badge>Incoming Developer</Badge>
               </div>
               <h2>
@@ -60,11 +61,26 @@ export function Handover() {
                 >
                   {v.acknowledged
                     ? "Receipt acknowledged"
-                    : "Acknowledge receipt"}
+                    : v.id > 1
+                      ? "Re-acknowledge revised receipt"
+                      : "Acknowledge receipt"}
                 </button>
               ) : null}
             </div>
           </section>
+          {v.id > 1 && (
+            <div className="panel mb-4" style={{ borderLeft: "4px solid var(--accent, #6366f1)" }}>
+              <strong>Updated handover version published</strong>
+              <p style={{ margin: "0.25rem 0 0", color: "var(--muted)" }}>
+                This is snapshot version {v.id}. It includes newly reviewed claims and answered clarifications from the departing member.
+                {state.role === "incoming" && !v.acknowledged && (
+                  <span style={{ display: "block", marginTop: "0.25rem", color: "var(--amber, #f59e0b)" }}>
+                    Material updates were published. Please re-acknowledge receipt above once reviewed.
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
           {state.role === "reviewer" && (
             <section className="panel">
               <h2>Share with {p.incoming}</h2>
@@ -136,6 +152,7 @@ export function Handover() {
                 <h3>{c.statement}</h3>
                 <div className="flex gap-2 flex-wrap">
                   <Badge>{c.evidence}</Badge>
+                  <Badge>Extractor · {c.extractor}</Badge>
                   <Badge>
                     {c.refs.length} {c.refs.length === 1 ? "source" : "sources"}
                   </Badge>

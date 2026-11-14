@@ -198,6 +198,7 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                     <h3>{c.statement}</h3>
                     <div className="flex gap-2 flex-wrap">
                       <Badge>{c.evidence}</Badge>
+                      <Badge>Extractor · {c.extractor}</Badge>
                       <Badge>{c.review}</Badge>
                     </div>
                     <div className="card-meta">

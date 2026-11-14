@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run build && npm start",
     "build": "tsc -b && vite build",
-    "test": "node --test server/rules.test.js server/reconstruction.test.js server/chat.test.js",
+    "test": "node --test server/rules.test.js server/reconstruction.test.js server/chat.test.js server/tenant.test.js server/accuracy.test.js",
     "test:e2e": "npm run build && playwright test",
     "preview": "vite preview --host 127.0.0.1",
     "start": "node --env-file-if-exists=.env scripts/serve.js",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.0",
+    "bcryptjs": "^3.0.3",
     "lucide-react": "^0.468.0",
     "pg": "^8.23.1",
     "react": "^19.0.0",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",

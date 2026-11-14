@@ -1,14 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../state/Store";
 import { Heading, Badge, date, Modal, Evidence } from "../components/UI";
-import type { Claim, HandoverVersion } from "../domain/types";
+import { VersionDiffViewer } from "../components/VersionDiffViewer";
+import type { Claim, HandoverVersion, VersionDiff } from "../domain/types";
 export function History() {
-  const { p } = useStore();
+  const { p, fetchDiff } = useStore();
   const [filter, setFilter] = useState("All events");
   const [version, setVersion] = useState<HandoverVersion | null>(null);
   const [base, setBase] = useState("");
   const [target, setTarget] = useState("");
   const [inspect, setInspect] = useState<Claim | null>(null);
+  const [diff, setDiff] = useState<VersionDiff | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
+
+  useEffect(() => {
+    if (base && target && fetchDiff) {
+      setDiffLoading(true);
+      fetchDiff(Number(base), Number(target))
+        .then((res) => {
+          setDiff(res);
+          setDiffLoading(false);
+        })
+        .catch(() => {
+          const fromV = p.versions.find((v) => String(v.id) === base);
+          const toV = p.versions.find((v) => String(v.id) === target);
+          if (fromV && toV) {
+            const fromClaims = fromV.claims;
+            const toClaims = toV.claims;
+            const fromIds = new Set(fromClaims.map((c) => c.id));
+            const toIds = new Set(toClaims.map((c) => c.id));
+            const added = toClaims.filter((c) => !fromIds.has(c.id));
+            const removed = fromClaims.filter((c) => !toIds.has(c.id));
+            const changed: any[] = [];
+            for (const tc of toClaims) {
+              const fc = fromClaims.find((c) => c.id === tc.id);
+              if (fc && JSON.stringify(fc) !== JSON.stringify(tc)) {
+                changed.push({
+                  id: tc.id,
+                  statement: tc.statement,
+                  before: fc,
+                  after: tc,
+                  changes: [
+                    ...(fc.owner !== tc.owner ? [{ field: "owner", before: fc.owner, after: tc.owner }] : []),
+                    ...(fc.review !== tc.review ? [{ field: "review", before: fc.review, after: tc.review }] : []),
+                    ...(fc.statement !== tc.statement ? [{ field: "statement", before: fc.statement, after: tc.statement }] : []),
+                    ...(fc.note !== tc.note ? [{ field: "note", before: fc.note, after: tc.note }] : []),
+                  ],
+                });
+              }
+            }
+            setDiff({
+              fromVersion: Number(base),
+              toVersion: Number(target),
+              added,
+              removed,
+              changed,
+              unchangedCount: toClaims.length - added.length - changed.length,
+              role: "reviewer",
+              summary: `${added.length} added, ${removed.length} removed, ${changed.length} changed`,
+              hasMaterialChanges: added.length > 0 || removed.length > 0 || changed.some((c: any) => c.changes.some((ch: any) => ch.field === "owner" || ch.field === "review")),
+            });
+          }
+          setDiffLoading(false);
+        });
+    } else {
+      setDiff(null);
+    }
+  }, [base, target, p.versions]);
   const a = p.versions.find((v) => String(v.id) === base);
   const b = p.versions.find((v) => String(v.id) === target);
   const changes =
@@ -85,28 +143,8 @@ export function History() {
               </select>
             </div>
             {a && b && (
-              <div>
-                {changes.length ? (
-                  changes.map((c) => (
-                    <div className="diff" key={c.id}>
-                      <strong>{c.id}</strong>
-                      <p className="removed">
-                        Before:{" "}
-                        {c.before
-                          ? `${c.before.statement} · ${c.before.owner} · ${c.before.review} · ${c.before.note}`
-                          : "Not included"}
-                      </p>
-                      <p className="added">
-                        After:{" "}
-                        {c.after
-                          ? `${c.after.statement} · ${c.after.owner} · ${c.after.review} · ${c.after.note}`
-                          : "Not included"}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p>No claim changes between these versions.</p>
-                )}
+              <div className="mt-4">
+                <VersionDiffViewer diff={diff} loading={diffLoading} />
               </div>
             )}
           </>

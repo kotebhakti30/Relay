@@ -329,21 +329,58 @@ export function Overview() {
   );
 }
 export function Projects() {
-  const { state, p, dispatch } = useStore();
+  const { state, p, projectsList, switchProject, openWizard, org } = useStore();
+  const displayList = projectsList.length > 0 ? projectsList : [
+    {
+      id: state.projectId,
+      name: p.name,
+      code: p.code,
+      description: p.description,
+      workspaceId: state.projectId,
+      departing: p.departing,
+      incoming: p.incoming,
+      role: state.role,
+      createdAt: "",
+    }
+  ];
+
   return (
     <>
       <Heading
         eyebrow="WORKSPACE"
         title="Projects & people"
-        description="Project details and the people involved in this handover."
+        description="Active handover projects and team members across your organisation."
+        action={
+          <button className="button primary" onClick={openWizard}>
+            + New project
+          </button>
+        }
       />
       <div className="two-col">
-        {[p].map((pr) => (
-          <section className="panel" key={state.projectId}>
-            <span className="project-mark">{pr.code}</span>
+        {displayList.map((pr) => (
+          <section className="panel" key={pr.id}>
+            <div className="flex justify-between items-start mb-2">
+              <span className="project-mark">{pr.code}</span>
+              {pr.id === state.projectId ? (
+                <Badge>Active project</Badge>
+              ) : (
+                <button
+                  className="button secondary text-xs py-1"
+                  onClick={() => switchProject && switchProject(pr.workspaceId)}
+                >
+                  Open project
+                </button>
+              )}
+            </div>
             <h2>{pr.name}</h2>
             <p>{pr.description}</p>
-            <small>Current project</small>
+            <div className="people mt-3 p-2 bg-stone-50 rounded text-xs flex justify-between items-center">
+              <div>
+                <small className="text-stone-500 block">Transition:</small>
+                <strong>{pr.departing} → {pr.incoming}</strong>
+              </div>
+              <small className="text-stone-400 font-medium">{pr.role || "Lead"}</small>
+            </div>
           </section>
         ))}
       </div>
@@ -358,9 +395,11 @@ export function Projects() {
             </div>
           ))}
         </div>
-        <p className="hint">
-          The sample team and seeded records are fictional.
-        </p>
+        {p.sample && (
+          <p className="hint">
+            The sample team and initial records are fictional.
+          </p>
+        )}
       </section>
     </>
   );

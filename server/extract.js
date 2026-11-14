@@ -50,7 +50,7 @@ const fresh = (r) =>
 function classify(s) {
   if (ownerOf(s) !== "Unassigned") return "Ownership";
   if (/\brisk|contingency|might fail/i.test(s)) return "Risks";
-  if (/\b(blocked|open|fixed|resolved|in progress|fails?|failing)\b/i.test(s))
+  if (/\b(blocked|blockers?|blocking|open|fixed|resolved|in progress|fails?|failing|delays?)\b/i.test(s))
     return "Blockers";
   if (/\b(decided|defer|agreed|adopt|choose|decision)\b/i.test(s))
     return "Decisions";
