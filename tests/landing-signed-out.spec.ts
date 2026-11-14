@@ -51,5 +51,5 @@ test("Landing page signed-out: asserts zero failed network requests, zero error 
   await expect(page.getByRole("button", { name: "Sign in as Demo Lead" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Explore sample workspace" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create your organisation" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
 });

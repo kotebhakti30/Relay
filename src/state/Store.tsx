@@ -114,6 +114,8 @@ export function Store({ children }: { children: ReactNode }) {
       const r = await api("redeem", "", "POST", body);
       history.replaceState(null, "", location.pathname + "#/handover");
       remember(r.token);
+      const s = await api("state", r.token);
+      setState(s);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -215,7 +217,10 @@ export function Store({ children }: { children: ReactNode }) {
     setBusy(true);
     setError("");
     try {
-      remember((await api("workspaces", "", "POST", {})).token);
+      const res = await api("workspaces", "", "POST", {});
+      remember(res.token);
+      const s = await api("state", res.token);
+      setState(s);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -233,6 +238,8 @@ export function Store({ children }: { children: ReactNode }) {
         setUser(res.user);
         setOrgs(res.orgs || []);
         setOrg(res.currentOrg || null);
+        const s = await api("state", res.token);
+        setState(s);
         return true;
       }
       return false;
@@ -276,6 +283,8 @@ export function Store({ children }: { children: ReactNode }) {
         setUser(res.user);
         setOrg(res.org);
         setOrgs([res.org]);
+        const s = await api("state", res.token);
+        setState(s);
         return true;
       }
       return false;
