@@ -395,11 +395,6 @@ export function Projects() {
             </div>
           ))}
         </div>
-        {p.sample && (
-          <p className="hint">
-            The sample team and initial records are fictional.
-          </p>
-        )}
       </section>
     </>
   );

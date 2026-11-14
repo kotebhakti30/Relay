@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Check, ChevronDown, ShieldCheck } from "lucide-react";
 import { useStore } from "../state/Store";
 import { latest, readerClaims, plan } from "../domain/engine";
-import { Heading, Badge, Empty, Evidence, date, Modal, cleanText } from "../components/UI";
+import { Heading, Badge, Empty, Evidence, date, Modal, cleanText, cleanOwner } from "../components/UI";
 import type { Claim } from "../domain/types";
 export function Handover() {
   const { state, p, dispatch, incomingLink } = useStore();
@@ -144,14 +144,6 @@ export function Handover() {
               )}
             </section>
           )}
-          <div className="notice">
-            <ShieldCheck size={18} />
-            <p>
-              Only approved, audience-appropriate content is included.
-              “Unresolved” means a reviewer has chosen to carry an open question
-              forward. The server applies audience access controls.
-            </p>
-          </div>
           <div className="knowledge-grid">
             {claims.map((c) => (
               <article className="knowledge-card" key={c.id}>
@@ -162,16 +154,12 @@ export function Handover() {
                 <h3>{cleanText(c.statement)}</h3>
                 <div className="flex gap-2 flex-wrap">
                   <Badge>{c.evidence}</Badge>
-                  <Badge>Extractor · {c.extractor}</Badge>
-                  <Badge>
-                    {c.refs.length} {c.refs.length === 1 ? "source" : "sources"}
-                  </Badge>
                   {(c.resolution || c.review === "Accepted") && (
                     <Badge>Reviewer-confirmed</Badge>
                   )}
                 </div>
                 <p>
-                  Owner: <strong>{c.owner}</strong>
+                  Owner: <strong>{cleanOwner(c.owner)}</strong>
                 </p>
                 {c.review === "Unresolved" && (
                   <p className="warning">
@@ -344,9 +332,21 @@ export function Plan() {
               );
             })}
           </div>
-          <Link className="text-link" to="/handover">
-            Return to handover and acknowledge receipt <ArrowRight size={16} />
-          </Link>
+          {completed === tasks.length && tasks.length > 0 ? (
+            <div className="panel p-6 text-center my-6 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <h2 className="text-lg font-semibold text-emerald-950 mb-1">All tasks complete</h2>
+              <p className="text-sm text-emerald-800 mb-4">
+                You have completed every orientation task in your first-week plan.
+              </p>
+              <Link className="button primary inline-flex items-center gap-2" to="/handover">
+                Return to handover to acknowledge receipt <ArrowRight size={16} />
+              </Link>
+            </div>
+          ) : (
+            <Link className="text-link" to="/handover">
+              Return to handover and acknowledge receipt <ArrowRight size={16} />
+            </Link>
+          )}
         </>
       )}
     </>

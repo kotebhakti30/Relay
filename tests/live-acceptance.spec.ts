@@ -41,7 +41,7 @@ test.describe("Production Live Acceptance Suite", () => {
   test("3. Sign in as Demo Lead: authenticates and loads project workspace", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
+    await page.getByRole("button", { name: /Sign in with evaluation account|Sign in as Demo Lead/i }).click();
 
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
@@ -51,10 +51,9 @@ test.describe("Production Live Acceptance Suite", () => {
   test("4. Explore sample workspace: opens isolated sample workspace", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto("/");
-    await page.getByRole("button", { name: "Explore sample workspace" }).click();
+    await page.getByRole("button", { name: /Explore workspace|Explore sample workspace/i }).click();
 
     await expect(page.locator(".topbar")).toBeVisible();
-    await expect(page.locator(".sample-tag")).toContainText("Sample");
     await expect(page.getByText("CampusConnect").first()).toBeVisible();
   });
 
@@ -191,7 +190,7 @@ test.describe("Production Live Acceptance Suite", () => {
   test("7. Refresh on deep link: persists authenticated state with zero errors", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
+    await page.getByRole("button", { name: /Sign in with evaluation account|Sign in as Demo Lead/i }).click();
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
 
@@ -214,22 +213,115 @@ test.describe("Production Live Acceptance Suite", () => {
   test("8. Reset sample workspace: resets demo data to clean CampusConnect seed", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
+    await page.getByRole("button", { name: /Sign in with evaluation account|Sign in as Demo Lead/i }).click();
     await expect(page.locator(".topbar")).toBeVisible();
 
     // Verify button exists
-    const resetBtn = page.getByRole("button", { name: "Reset sample workspace" });
+    const resetBtn = page.getByRole("button", { name: /Reset workspace|Reset sample workspace/i });
     await expect(resetBtn).toBeVisible();
     await resetBtn.click();
 
     // Confirm dialog
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
-    await expect(modal.getByRole("heading", { name: "Reset sample workspace?" })).toBeVisible();
-    await modal.getByRole("button", { name: "Reset sample workspace" }).click();
+    await expect(modal.getByRole("heading", { name: /Reset workspace\?|Reset sample workspace\?/i })).toBeVisible();
+    await modal.getByRole("button", { name: /Reset workspace|Reset sample workspace/i }).click();
 
     // Redirected to overview
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
+  });
+
+  test("9. Incoming member completes every task, reloads, and acknowledges receipt with no layout break", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto("/");
+    await page.getByRole("button", { name: /Sign in with evaluation account|Sign in as Demo Lead/i }).click();
+    await expect(page.locator(".topbar")).toBeVisible();
+
+    // Reset workspace to clean state
+    const resetBtn = page.getByRole("button", { name: /Reset workspace|Reset sample workspace/i });
+    if (await resetBtn.isVisible()) {
+      await resetBtn.click();
+      const modal = page.getByRole("dialog");
+      await modal.getByRole("button", { name: /Reset workspace|Reset sample workspace/i }).click();
+      await expect(page.locator(".topbar")).toBeVisible();
+    }
+
+    // Go to Review & approve
+    await page.goto("/#/review");
+    await page.getByLabel("Target audience").selectOption("incoming");
+    await page.getByLabel(/I confirm the included information/i).check();
+    await page.getByRole("button", { name: "Approve and publish handover" }).click();
+
+    // Go to Handover page and get incoming link
+    await page.goto("/#/handover");
+    const incomingLinkEl = page.getByRole("link", { name: "Open as incoming member" });
+    await expect(incomingLinkEl).toBeVisible();
+    const incomingUrl = await incomingLinkEl.getAttribute("href");
+    expect(incomingUrl).toBeTruthy();
+
+    // Open incoming member session in fresh tab
+    const incomingPage = await context.newPage();
+    const consoleErrors: string[] = [];
+    incomingPage.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+
+    await incomingPage.goto(incomingUrl!);
+    await expect(incomingPage.getByText(/Viewing as Incoming Developer/i)).toBeVisible();
+
+    // Navigate to First-week plan
+    await incomingPage.goto("/#/plan");
+    await expect(incomingPage.getByRole("heading", { name: "Know where to begin." })).toBeVisible();
+
+    // Check off all tasks
+    const taskDetails = incomingPage.locator(".plan-task");
+    const count = await taskDetails.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const task = taskDetails.nth(i);
+      const isOpen = await task.getAttribute("open");
+      if (isOpen === null) {
+        await task.locator("summary").click();
+      }
+      const checkbox = task.locator("input[type='checkbox']");
+      if (!(await checkbox.isChecked())) {
+        await checkbox.check();
+      }
+    }
+
+    // Verify "All tasks complete" state is shown
+    await expect(incomingPage.getByRole("heading", { name: "All tasks complete" })).toBeVisible();
+    await expect(incomingPage.getByRole("link", { name: /Return to handover to acknowledge receipt/i })).toBeVisible();
+
+    // Verify auth modal/panel is NOT rendering inline or visible
+    await expect(incomingPage.locator(".auth-modal")).toHaveCount(0);
+
+    // Reload page to assert persistence and no layout break
+    await incomingPage.reload();
+    await expect(incomingPage.getByRole("heading", { name: "All tasks complete" })).toBeVisible();
+    await expect(incomingPage.locator(".auth-modal")).toHaveCount(0);
+
+    // Return to handover and acknowledge receipt
+    await incomingPage.getByRole("link", { name: /Return to handover to acknowledge receipt/i }).click();
+    await expect(incomingPage.getByText(/Viewing as Incoming Developer/i)).toBeVisible();
+
+    const ackBtn = incomingPage.getByRole("button", { name: /Acknowledge receipt|Re-acknowledge/i });
+    await expect(ackBtn).toBeVisible();
+    await ackBtn.click();
+    const ackDialog = incomingPage.getByRole("dialog");
+    await ackDialog.getByRole("button", { name: "Confirm receipt" }).click();
+
+    // Verify receipt acknowledged
+    await expect(incomingPage.getByRole("button", { name: "Receipt acknowledged" })).toBeDisabled();
+
+    // Layout check: header, main content, and footer exist cleanly
+    await expect(incomingPage.locator(".topbar")).toBeVisible();
+    await expect(incomingPage.locator("footer")).toContainText("Relay v2.0");
+    await expect(incomingPage.locator(".auth-modal")).toHaveCount(0);
+    expect(consoleErrors).toEqual([]);
+
+    await incomingPage.close();
   });
 });

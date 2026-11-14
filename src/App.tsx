@@ -227,7 +227,6 @@ function Shell() {
           <label className="project-switch">
             <span className="tiny-project">{current.code}</span>
             <strong>{current.name}</strong>
-            {p.sample && <span className="sample-tag">Sample</span>}
           </label>
           <div className="topbar-right">
             <span className="workspace-pill">
@@ -313,7 +312,7 @@ function Shell() {
             {p.sample && state.role === "reviewer" && (
               <button className="reset-button" onClick={() => setReset(true)}>
                 <RotateCcw size={15} />
-                Reset sample workspace
+                Reset workspace
               </button>
             )}
           </div>
@@ -327,23 +326,7 @@ function Shell() {
                 "Evidence detail"}
             </strong>
           </span>
-          <button onClick={() => setGuide(guide < 0 ? 0 : -1)}>
-            Quick tour
-          </button>
         </div>
-        {guide >= 0 && (
-          <section className="panel">
-            <h2>Quick tour</h2>
-            <ol>
-              <li>Open Data Sources and import your own note.</li>
-              <li>Run Reconstruction and inspect an exact quotation.</li>
-              <li>Review the candidates, choose the incoming member and approve.</li>
-              <li>
-                Click “Open as incoming member” to open the recipient view in one click (or share the manual link and code), complete a task and acknowledge receipt.
-              </li>
-            </ol>
-          </section>
-        )}
         <main id="main" tabIndex={-1} key={`${state.projectId}-${state.role}`}>
           <Routes>
             <Route path="/" element={<Overview />} />
@@ -437,8 +420,7 @@ function Shell() {
           </Routes>
         </main>
         <footer>
-          <span>Relay · v2.0.0 · Build {__RELAY_BUILD__}</span>
-          <span><NavLink to="/about">About &amp; limitations</NavLink></span>
+          <span>Relay v2.0 · build {__RELAY_BUILD__} · <NavLink to="/about">About</NavLink> · <NavLink to="/limitations">Limitations</NavLink></span>
         </footer>
       </div>
       <AskRelay />
@@ -455,9 +437,9 @@ function Shell() {
         </div>
       )}
       {reset && (
-        <Modal title="Reset sample workspace?" onClose={() => setReset(false)}>
+        <Modal title="Reset workspace?" onClose={() => setReset(false)}>
           <p>
-            This restores the clean sample workspace: the small CampusConnect claim set, nothing approved, sharing not yet created, and the payment conflict unresolved.
+            This restores the initial workspace: the small CampusConnect claim set, nothing approved, sharing not yet created, and the payment conflict unresolved.
           </p>
           <div className="actions">
             <button onClick={() => setReset(false)}>Keep my progress</button>
@@ -467,12 +449,11 @@ function Shell() {
               onClick={() => {
                 dispatch({ type: "reset" });
                 setReset(false);
-                setGuide(-1);
                 setToast("");
                 nav("/");
               }}
             >
-              Reset sample workspace
+              Reset workspace
             </button>
           </div>
         </Modal>

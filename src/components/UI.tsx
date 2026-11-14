@@ -14,6 +14,16 @@ export function cleanText(s: string): string {
     .replace(/^\s*[-*•]\s+/g, "")
     .trim();
 }
+
+/**
+ * Replaces "Unassigned" with "Owner not identified" when no owner is present
+ */
+export function cleanOwner(owner?: string): string {
+  if (!owner || owner === "Unassigned" || owner.toLowerCase() === "unassigned") {
+    return "Owner not identified";
+  }
+  return owner;
+}
 export function Badge({ children }: { children: ReactNode }) {
   const text = String(children);
   return (
@@ -48,7 +58,7 @@ export function Heading({
 }
 export function Empty({
   title = "A little context goes a long way.",
-  description = "Connect sample sources and reconstruct the project to get started.",
+  description = "Connect data sources and reconstruct the project to get started.",
   to = "/sources",
   action = "Connect sources",
 }: {
@@ -134,7 +144,7 @@ export function Evidence({
       </div>
       <h2 className="claim-title">{cleanText(claim.statement)}</h2>
       <div className="meta">
-        Owner: {claim.owner} · Last evidence: {date(claim.updated)}
+        Owner: {cleanOwner(claim.owner)} · Last evidence: {date(claim.updated)}
       </div>
       <div className="explanation">
         <ShieldCheck size={19} />

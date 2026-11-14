@@ -16,7 +16,7 @@ import type {
 import type { Action } from "../domain/engine";
 import { AuthModal } from "../components/AuthModal";
 import { ProjectWizard } from "../components/ProjectWizard";
-import { Sparkles, Building2, LogIn, ArrowRight } from "lucide-react";
+import { Sparkles, Building2, LogIn, ArrowRight, ShieldCheck } from "lucide-react";
 
 export async function api(
   path: string,
@@ -95,6 +95,7 @@ export function Store({ children }: { children: ReactNode }) {
     [projectsList, setProjectsList] = useState<ProjectSummary[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
+    [sessionExpired, setSessionExpired] = useState(false),
     [code, setCode] = useState(""),
     [authModal, setAuthModal] = useState<{ open: boolean; mode: "login" | "signup" }>({
       open: false,
@@ -116,8 +117,13 @@ export function Store({ children }: { children: ReactNode }) {
       remember(r.token);
       const s = await api("state", r.token);
       setState(s);
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (e: any) {
+      const msg = (e as Error).message || "";
+      if (body.link && (msg.toLowerCase().includes("revoked") || msg.toLowerCase().includes("expired") || e.status === 401 || e.status === 403)) {
+        setSessionExpired(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -189,10 +195,14 @@ export function Store({ children }: { children: ReactNode }) {
           if (e.status === 401 || e.status === 404) {
             // Treat 401 and 404 on state call as "signed out" cleanly.
             // Clear stale session token, show no error banner, and do not retry.
+            const hadState = !!state;
             sessionStorage.removeItem(key);
             setToken("");
             setState(null);
             setError("");
+            if (hadState) {
+              setSessionExpired(true);
+            }
           } else if (state) {
             // Real network failure or 5xx on an already active session
             setError(e.message || "Connection lost. Please retry.");
@@ -455,6 +465,55 @@ export function Store({ children }: { children: ReactNode }) {
     </aside>
   );
 
+  if (sessionExpired) {
+    return (
+      <main className="entry" style={{ maxWidth: 480, margin: "12vh auto", textAlign: "center" }}>
+        <div className="panel" style={{ padding: "32px 24px" }}>
+          <div style={{ display: "inline-flex", padding: 12, borderRadius: "50%", background: "#fef3c7", color: "#d97706", marginBottom: 16 }}>
+            <ShieldCheck size={32} />
+          </div>
+          <h1 style={{ fontSize: "1.35rem", marginBottom: "0.5rem", fontWeight: 700 }}>
+            Your access has ended or expired
+          </h1>
+          <p style={{ color: "#4b5563", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+            The sharing link or access code used to join this workspace is no longer active.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <button
+              className="primary"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={() => {
+                setSessionExpired(false);
+                history.replaceState(null, "", location.pathname + "#/");
+              }}
+            >
+              Enter a new access code
+            </button>
+            <button
+              className="button secondary"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={() => {
+                setSessionExpired(false);
+                setAuthModal({ open: true, mode: "login" });
+              }}
+            >
+              Sign in to your account
+            </button>
+          </div>
+        </div>
+        <AuthModal
+          isOpen={authModal.open}
+          onClose={() => setAuthModal({ open: false, mode: "login" })}
+          onLogin={handleLogin}
+          onSignup={handleSignup}
+          onDemoLogin={handleDemoLogin}
+          initialMode={authModal.mode}
+          busy={busy}
+        />
+      </main>
+    );
+  }
+
   if (!state)
     return (
       <main className="entry">
@@ -466,18 +525,18 @@ export function Store({ children }: { children: ReactNode }) {
               Turn project notes into a handover. Trace each claim to its source, review open questions and share an approved first-week plan.
             </p>
 
-            {/* Evaluator Demo Callout Card */}
+            {/* Evaluation Account Callout Card */}
             <div className="p-3 mb-4 bg-emerald-50 border border-emerald-200 rounded-lg text-left max-w-md">
               <div className="flex items-center justify-between mb-1">
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-900">
-                  <Sparkles size={14} /> Public Demo Account
+                  <Sparkles size={14} /> Evaluation account
                 </span>
                 <span className="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-mono">
-                  Team Lead Pre-loaded
+                  Team lead
                 </span>
               </div>
               <p className="text-xs text-emerald-800 mb-2">
-                Evaluate full lead capabilities with seeded project records:
+                Evaluate lead capabilities with pre-configured credentials:
                 <br />
                 <strong>demo@relay.local</strong> / <strong>DemoUser2026!</strong>
               </p>
@@ -487,7 +546,7 @@ export function Store({ children }: { children: ReactNode }) {
                   disabled={busy}
                   onClick={handleDemoLogin}
                 >
-                  Sign in as Demo Lead <ArrowRight size={13} />
+                  Sign in with evaluation account <ArrowRight size={13} />
                 </button>
               </div>
             </div>
@@ -516,7 +575,7 @@ export function Store({ children }: { children: ReactNode }) {
                 ? "Starting…"
                 : token && !error
                   ? "Opening workspace…"
-                  : "Explore sample workspace"}
+                  : "Explore workspace"}
             </button>
             <form
               onSubmit={(e) => {

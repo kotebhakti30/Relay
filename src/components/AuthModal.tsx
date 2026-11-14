@@ -76,7 +76,7 @@ export function AuthModal({
                 {mode === "login" ? "Sign In to Relay" : "Create Your Organisation"}
               </h2>
               <small className="text-stone-500">
-                {mode === "login" ? "Enter your credentials or try the demo" : "Start your isolated company workspace"}
+                {mode === "login" ? "Enter your credentials to continue" : "Start your isolated company workspace"}
               </small>
             </div>
           </div>
@@ -85,33 +85,24 @@ export function AuthModal({
           </button>
         </header>
 
-        {/* Demo Account Callout Card */}
-        <div className="p-3 mb-4 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-900">
-              <Sparkles size={14} /> Public Demo Account
-            </span>
-            <span className="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-mono">
-              Pre-loaded Lead
-            </span>
+        {mode === "login" && (
+          <div className="p-3 mb-4 bg-stone-50 border border-stone-200 rounded-lg flex flex-col gap-2">
+            <div className="text-xs text-stone-600 font-mono">
+              demo@relay.local / DemoUser2026!
+            </div>
+            <button
+              type="button"
+              className="button secondary text-xs py-1.5 font-medium flex items-center justify-center gap-1 bg-white hover:bg-stone-100"
+              disabled={busy}
+              onClick={async () => {
+                const ok = await onDemoLogin();
+                if (ok) onClose();
+              }}
+            >
+              Use demo account <ArrowRight size={13} />
+            </button>
           </div>
-          <p className="text-xs text-emerald-800">
-            For evaluation, you can sign in directly or use credentials:
-            <br />
-            <strong>demo@relay.local</strong> / <strong>DemoUser2026!</strong>
-          </p>
-          <button
-            type="button"
-            className="button secondary text-xs py-1.5 font-medium flex items-center justify-center gap-1 bg-white hover:bg-emerald-100"
-            disabled={busy}
-            onClick={async () => {
-              const ok = await onDemoLogin();
-              if (ok) onClose();
-            }}
-          >
-            Sign in as Demo Lead (1-Click) <ArrowRight size={13} />
-          </button>
-        </div>
+        )}
 
         {error && <div className="p-3 mb-3 bg-red-50 text-red-800 text-xs rounded-lg">{error}</div>}
 

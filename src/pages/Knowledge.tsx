@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowUpRight, Search, LockKeyhole, ArrowLeft } from "lucide-react";
 import { useStore } from "../state/Store";
 import { visibleClaims, visibleRecords } from "../domain/engine";
-import { Heading, Badge, Empty, Evidence, date, cleanText } from "../components/UI";
+import { Heading, Badge, Empty, Evidence, date, cleanText, cleanOwner } from "../components/UI";
 import { ReviewDialog } from "../components/ReviewDialog";
 import type { Claim } from "../domain/types";
 const categories = [
@@ -198,11 +198,10 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                     <h3>{cleanText(c.statement)}</h3>
                     <div className="flex gap-2 flex-wrap">
                       <Badge>{c.evidence}</Badge>
-                      <Badge>Extractor · {c.extractor}</Badge>
                       <Badge>{c.review}</Badge>
                     </div>
                     <div className="card-meta">
-                      <span>{c.owner}</span>
+                      <span>{cleanOwner(c.owner)}</span>
                       <span>
                         {c.refs.length}{" "}
                         {c.refs.length === 1 ? "source" : "sources"} ·{" "}
