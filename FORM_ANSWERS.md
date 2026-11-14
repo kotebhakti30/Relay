@@ -1,41 +1,61 @@
-# Round 2 Form Answers · Relay
-Team DEV404 · Dhanashree S. Hingnekar and Bhakti S. Kote
+# Round 3 Final Submission Form Answers
+Team DEV404 · Relay
 
 ---
 
-## 1. Features completed
-* **End-to-End Handover Workflow:** Signed-out visitors can explore an isolated workspace, import markdown/text meeting notes, and reconstruct knowledge claims linked directly to verbatim source excerpts.
-* **Evidence & Conflict Grounding:** Contradictory statements across sources (e.g. conflicting issue states or competing owners) are automatically detected and flagged as Conflicting. Corroborated claims from independent records receive a Supported badge.
-* **Human-in-the-Loop Review & Immutability:** Leads can review candidate claims (Accept, Reject, Unresolved), edit statements, provide required justifications, and approve an immutable version snapshot protected by database triggers.
-* **One-Click Recipient Access:** The lead can open the recipient view in one click with pre-authenticated credentials, or share a revocable secret link and 6-digit access code. Regenerating or revoking access immediately invalidates previous sessions.
-* **Recipient Plan & Acknowledgment:** The incoming member sees only approved, permitted records, tracks first-week continuation tasks, records personal notes, and formally acknowledges handover receipt.
-* **Real AI Extraction:** Google Gemini (`gemini-2.5-flash`) extraction with structured JSON schemas, server-side verbatim verification, and honest labeling (`Extractor · AI-assisted` vs `Extractor · Rule-based`).
-* **Ask Relay (Evidence-Backed Chatbot):** Server-side grounded Q&A with database query-layer role filtering, verified citation checking, honest confidence reporting, and prompt injection defense.
-* **About & Limitations Page:** A dedicated, transparent reference on supported sources, role boundaries, and unbuilt features.
+### Question 1: Project Name
+**Relay**
 
----
+### Question 2: One-line Tagline / Elevator Pitch
+**A verifiable, multi-tenant knowledge handover platform for engineering teams that reconstructs grounded project intelligence from unstructured sources, resolves gaps with departing developers, and publishes immutable, audience-scoped handovers.**
 
-## 2. Technology details
-* **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Lucide icons, React Router (HashRouter).
-* **Backend:** Single-origin Node.js API hosted as serverless functions on Vercel.
-* **Database:** PostgreSQL (Neon cloud serverless PostgreSQL with connection pooling and SSL).
-* **AI Provider:** Official Google Gemini API (`gemini-2.5-flash`) via REST with strict JSON schema definitions; deterministic heuristic rules fallback.
-* **Security & Auth:** HMAC-signed session bearer tokens (7-day validity), secret share URLs with hash-fragment tokens (never transmitted in server HTTP referrers), database query-layer access filtering, and input capping (max 8,000 characters per note, max 500 characters per chat prompt).
-* **Database Immutability:** PostgreSQL triggers reject `UPDATE` and `DELETE` queries on approved snapshots (`handover_versions`) and audit trail logs (`audit_log`).
-* **Testing:** 16 server-side unit tests (`node --test`), plus end-to-end browser tests (`@playwright/test`) testing 8-step live journeys, mobile upload, and 6 live chatbot intent queries against production.
+### Question 3: Team Members & Lead Email
+- **Team:** DEV404
+- **Members:** Dhanashree S. Hingnekar, Bhakti S. Kote
+- **Lead Email:** kotebhakti@gmail.com
 
----
+### Question 4: Live Production URL
+**https://relay2-rho.vercel.app/**
 
-## 3. Changes since Round 1
-* **Single-Origin Deployment:** Consolidated the application into a unified React/Vite and Node.js deployment on Vercel backed by PostgreSQL, eliminating external microservice dependencies.
-* **One-Click Incoming Member Flow:** Added a direct "Open as incoming member" button for seamless evaluator inspection alongside manual link/code sharing.
-* **Real Gemini Extraction & Verbatim Checks:** Implemented live Gemini integration with strict JSON schema generation, rigorous verbatim excerpt verification, and honest extractor labeling.
-* **Ask Relay Chatbot:** Built an evidence-grounded chatbot with query-layer role permissions, citation verification, and prompt injection hardening.
-* **Clean Production UI:** Completely removed hackathon/demo wording from user-facing screens and added a small "Sample" tag and a comprehensive "About & limitations" reference.
+### Question 5: Public GitHub Repository URL
+**https://github.com/kotebhakti30/Relay**
 
----
+### Question 6: Production Commit Hash
+**`69472f6`** (Derived from Round 2 tag `stable-round2-final` at `3cadcc9ec66bcf76470c8d37fb19f7a5e50bcd10`)
 
-## 4. What does not work yet
-* **Self-Service User Signup:** Email/password account creation, organization switching, and tenant onboarding are not built; workspaces use isolated cryptographic session tokens.
-* **Email Verification & Recovery:** No transactional email provider is connected; email verification and email password resets are unavailable.
-* **Live External Webhooks:** Real-time two-way synchronization with live GitHub, Jira, or Slack workspaces is not built; records are ingested via text/markdown note import and structured sample records.
+### Question 7: Complete Feature List (What does the product do?)
+1. **Multi-Tenant Accounts & Organizations:** Email and password signup and login with bcrypt hashing ($2a$10$...), sliding-window rate limiting, and signed httpOnly session cookies. Users can create and manage organizations, with strict cross-tenant data isolation.
+2. **Project Setup Wizard:** 4-step wizard configuring custom project name, code, departing engineer (name, role, last day), incoming engineer (name, role), and team members. All screens and copy read dynamic database values without hardcoded identities.
+3. **Multi-Source Data Ingestion:** Ingests meeting notes (markdown/text, capped at 8,000 chars), live GitHub issues from public repositories via REST API (with paste-JSON fallback and permission snapshots), task boards, and team updates.
+4. **Knowledge Extraction & Grounding:** Dual-engine extraction using Google Gemini (`gemini-2.5-flash`) with strict JSON schema when configured with `LLM_API_KEY`, and deterministic heuristic rules as a reliable fallback. Every excerpt is verified verbatim against raw source text; unverifiable citations are discarded.
+5. **Knowledge Gap Radar & Continuous Corroboration:** Identifies single points of failure, missing owners, and conflicting states (temporal window: 6 weeks; independent sources >=2 for Supported).
+6. **Clarification Loop with Departing Member:** Team leads ask targeted questions on uncertain or conflicting claims. Departing members receive questions in a dedicated inbox (`/#/clarifications`), submit answers that persist as evidence (`CLR-...`), and claims deterministically reset to `Pending Review`.
+7. **Human-in-the-Loop Review:** Team leads accept, reject, or leave claims unresolved with required rationale, select the target audience, and confirm information appropriateness before publishing.
+8. **Immutable Version Snapshots:** Handover versions and audit history are locked in PostgreSQL with database triggers preventing modification or deletion.
+9. **Side-by-Side Version Diff & Staleness Engine:** Compares any two version snapshots, highlighting added, removed, and changed claims with field-level before/after cards. Automatically detects stale draft claims based on answered clarifications, new source notes, or 6-week age expiration.
+10. **One-Click Recipient Experience:** "Open as incoming member" button opens an authenticated view in one click, enforcing audience access controls (lead-only and rejected claims return HTTP 403/404). Incoming members inspect the First-Week Plan, record personal task notes, and formally acknowledge or re-acknowledge receipt.
+11. **Ask Relay (Evidence-Backed Assistant):** Server-side interactive assistant featuring a 7-step intent classifier (greeting, about_me, about_product, project_question, general_knowledge, restricted, unsafe). Filters unapproved and lead-only data at the database query layer prior to model retrieval.
+
+### Question 8: Architecture & Implementation Summary
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, HashRouter, custom state store with dual-session tokens and React ErrorBoundary.
+- **Backend:** Node.js serverless functions (`api/relay.js` routing to modular controllers in `server/`).
+- **Database:** PostgreSQL on Neon with relational schema (`accounts`, `organisations`, `projects`, `workspaces`, `claims`, `source_records`, `clarification_questions`, `handover_versions`, `audit_log`, `source_permissions`), database-enforced immutability triggers, and strict tenant-scoped queries.
+- **AI Integration:** Google Gemini API (`gemini-2.5-flash`) via REST with strict JSON schema enforcement, server-side verbatim excerpt checking, and deterministic regex/heuristic fallback.
+- **Security:** bcrypt password hashing (cost factor 10), HMAC-SHA256 session signatures, httpOnly/SameSite session cookies, sliding-window login rate limiting, prompt injection defenses, and strict SQL query-layer audience scoping.
+
+### Question 9: Improvements Completed After Round 2
+1. **Improvement 1 (Real Sources & Accounts):** Email and password authentication with bcrypt hashing, rate limiting, httpOnly signed cookies, organization management, 4-step dynamic Project Setup Wizard, tenant isolation guarantees, and live public GitHub repository issues connector.
+2. **Improvement 2 (Clarification Loop with Departing Member):** Dedicated clarification inbox (`/#/clarifications`), targeted question creation from gaps, authoritative answer submissions linked as persistent evidence (`CLR-...`), and deterministic re-labelling to `Pending Review`.
+3. **Improvement 3 (Handover Versions, Diff & Re-Review):** Side-by-side version comparison viewer (`/#/history`), automated staleness detection (answered clarifications, new sources, 6-week threshold), Version N+1 updated snapshot banner, and recipient re-acknowledgement flow.
+4. **Extraction Accuracy Evaluation:** Created `server/accuracy.test.js` and `test-fixtures/ground-truth.json` measuring 100% precision and recall across 3 diverse company contexts with 100% verbatim verification.
+5. **UI & Terminology Polish:** Removed all forbidden terminology; added evaluator demo account card (`demo@relay.local`); added React ErrorBoundary; expanded test suite to 25 automated tests in `npm test` running in 1.7s.
+
+### Question 10: Testing Details & Verification Numbers
+- **Server Test Suites:** 25 automated tests across 5 files (`rules.test.js`, `reconstruction.test.js`, `chat.test.js`, `tenant.test.js`, `accuracy.test.js`), all passing in 1.7 seconds.
+- **Extraction Accuracy:** 9 out of 9 target claims matched across 3 distinct company domains (FinTech, Digital Health, Fleet Logistics) with 100% verbatim quote verification.
+- **Browser Acceptance Tests:** 13-step end-to-end handover flow verified live against `https://relay2-rho.vercel.app/` in private incognito sessions with zero console errors.
+
+### Question 11: Future Roadmap
+- **Near-Term:** Transactional email integration for self-service password reset and email invitations; OAuth 2.0 app installations for GitHub and Slack.
+- **Medium-Term:** AST-level codebase dependency mapping to developer owners; multi-modal handover call transcription with verbatim citation linking; real-time Jira and Linear status synchronization.
+- **Long-Term:** Enterprise SAML 2.0 SSO; cross-project organization single-point-of-failure dashboards; pre-departure handover readiness scoring.

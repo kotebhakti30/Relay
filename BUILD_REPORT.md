@@ -1,113 +1,130 @@
-# Relay Build Report · Final Polish & AI Verification
+# Relay Build Report · Round 3 Final Submission
 Team DEV404 · Dhanashree S. Hingnekar and Bhakti S. Kote
 
 * **Production URL:** [https://relay2-rho.vercel.app/](https://relay2-rho.vercel.app/)
 * **Public Repository:** [https://github.com/kotebhakti30/Relay](https://github.com/kotebhakti30/Relay)
-* **Pre-AI Tag:** `stable-before-ai` (`f1c668ae514d600830507b3720836b5fdf45d188`)
-* **Verified Production Build:** `ef885c5`
+* **Round 2 Working Tag:** `stable-round2-final` (`3cadcc9ec66bcf76470c8d37fb19f7a5e50bcd10`)
+* **Round 3 Production Build:** `69472f6`
+* **Lead Email:** kotebhakti@gmail.com
 
 ---
 
-## 1. Summary of Changes & Audit
+## 1. Executive Summary: What Was Built & Verified in Round 3
 
-### A. Wording & Terminology Removal
-* Removed the words `"demo"`, `"Demo mode"`, `"Guided Demo"`, `"Reset Demo"`, `"prototype"`, `"Round 1"`, `"Round 2"`, `"DEV404"`, `"sample data"` and `"synthetic"` from all user-facing views:
-  * Removed the `workspace-banner` element.
-  * Replaced topbar pill with `{p.organisation}`.
-  * Replaced reset modal copy with `"Reset workspace"`.
-  * Added small `.sample-tag` (`Sample`) next to project title on the sample workspace.
-  * Updated `Overview.tsx` hero kicker to `PROJECT CONTEXT` and removed "synthetic".
-  * Updated `Sources.tsx` description and badge to `Connected source`.
-  * Seed audit logs updated from "synthetic records" to "initial records".
-  * Retained team names and hackathon designations exclusively in `README.md`, `BUILD_REPORT.md`, and submission documentation.
+In Round 3, Team DEV404 completed all three promised improvements and delivered a production-ready, multi-tenant knowledge handover platform:
 
-### B. One-Click Incoming Member Flow
-* Added **Open as incoming member** primary action button on the Handover page (visible to the team lead once a handover snapshot is approved). Clicking it opens a new browser window/tab pre-authenticated with the recipient link and token.
-* Kept manual copyable link input and access code for external sharing.
-* Added plain-language guidance: *"Share this link and code with the incoming person."*
-* Updated the workspace Quick tour to document the one-click recipient flow.
-
-### C. Real AI Extraction & Grounding
-* Supported server-side Google Gemini extraction via `LLM_API_KEY` and `LLM_PROVIDER=gemini` targeting model `gemini-2.5-flash` with strict JSON schema response formatting.
-* Added server-side verbatim verification (`verified(r, c.excerpt)`): every excerpt returned by the model is checked against raw source text; unverifiable citations are discarded.
-* Added honest labeling: claims display `Extractor · AI-assisted` when extracted by Gemini, and `Extractor · Rule-based` when using deterministic rules.
-* Input capping (max 8,000 characters per note, max 100,000 characters per batch) and database rate-limiting per workspace and IP.
-* Prompt injection defense: source text is treated strictly as data, instructing the model to ignore any embedded instructions.
-
-### D. Evidence-Backed Chatbot ("Ask Relay") with Intent Classification
-* Added server-side interactive assistant accessible to project members.
-* **Intent Classification Step before Retrieval:**
-  1. `greeting / small_talk`: Warm 1-sentence reply with 3 clickable suggested questions based on claims this role may see; never returns "Insufficient evidence".
-  2. `about_me`: Returns role, identity, and permissions (name, role, what this role can/cannot see) directly from session data without calling an LLM.
-  3. `about_product`: Answers how Relay and its pages work from static help text without involving project claims or calling an LLM.
-  4. `project_question`: Grounded retrieval sending ONLY permitted claims and evidence to Gemini with strict JSON schema and citation verification. Insufficient evidence explains what is missing and offers 2 related answerable questions.
-  5. `general_knowledge`: Allows short general computing answers (max 3 sentences) with a visible `[General answer, not from your project sources]` label. Sends ZERO project claims to the model.
-  6. `restricted`: For incoming-member sessions, returns `"This information is not available for this role."` without leaking contents. Enforced at the SQL query layer.
-  7. `unsafe / injection`: Neutralizes system overrides, role-breaks, and injection attempts, returning a safe refusal without executing commands.
-* **Query-layer permission enforcement**: incoming members can only retrieve and query approved, audience-permitted claims from the latest handover snapshot (`!restricted && ['Accepted', 'Unresolved']`). Lead-only sources (`CH-R1`) and unapproved/rejected items are filtered out in the database query layer before retrieval or model prompting.
-* Rate-limited per workspace and IP; audited in `audit_log`.
-
-### E. Dedicated "About & Limitations" Page
-* Accessible via `/#/about` and linked directly from the footer and sidebar.
-* Plainly documents fictional sample records, AI-assisted vs rule-based mechanics, supported sources, role models, and unbuilt items (e.g. self-service email/password signup and external webhook connectors).
+1. **Improvement 1 (Real Sources & Accounts):** Email and password authentication with bcrypt password hashing, login attempt rate-limiting, signed httpOnly cookies, multi-tenant organizations, a 4-step dynamic Project Setup Wizard, tenant isolation guarantees, and a live public GitHub repository issues connector.
+2. **Improvement 2 (Clarification Loop with Departing Member):** Dedicated clarification inbox (`/#/clarifications`), structured answer submissions linking as persistent evidence (`CLR-...`), and deterministic re-labelling of claims to `Pending Review` for human lead approval.
+3. **Improvement 3 (Handover Versions, Diff & Re-Review):** Side-by-side version diffing (`/#/history`), automated staleness detection (answered clarifications, new sources, 6-week age threshold), Version N+1 updated snapshot banner, and recipient re-acknowledgement.
+4. **Extraction Accuracy Evaluation:** Ground-truth dataset with 3 diverse company contexts (FinTech, Digital Health, Fleet Logistics) measuring 100% precision and recall across Ownership, Decisions, and Blockers with 100% verbatim quote verification.
+5. **Quality & Safety:** Cleaned all forbidden terminology from UI copy; wrapped the application in a global React Error Boundary; wired 25 automated unit tests across 5 server suites in `npm test` running in 1.7s.
 
 ---
 
-## 2. Public Acceptance Results · 10 November 2026
+## 2. The Three Promised Improvements (Detailed Implementation)
 
-Both automated browser test suites passed against `https://relay2-rho.vercel.app/` in a signed-out private session on commit `ef885c5`.
+### Improvement 1: Real Sources, Accounts & Multi-Tenant Organizations
+- **Authentication:** Added `server/auth.js` with bcrypt hashing (`$2a$10$...`), 8-character password enforcement, and in-memory rate limiting (max 5 failed attempts per 5-minute window per IP).
+- **Session Security:** Issues HMAC-SHA256 tokens stored in `httpOnly`, `SameSite=Lax`, `Secure` cookies under `relay_session` (and bearer header fallback).
+- **Multi-Tenant Organizations:** Signup creates an organization and sets the user as Admin. Header features account switcher and organization identity. Settings page (`/#/settings`) allows editing organization names and viewing active members.
+- **Project Setup Wizard:** 4-step wizard modal (`src/components/ProjectWizard.tsx`) allows creating isolated projects with custom project name, code, departing member details, incoming member details, and team members. Screens and handover copy read dynamic database values without hardcoding names.
+- **Tenant Isolation:** Every query in `server/workflow.js` scopes access to the caller's organization and project. Tests in `server/tenant.test.js` prove Company A cannot list, read, or modify Company B projects or claims.
+- **Live GitHub Connector:** Added `server/github.js` and a dedicated GitHub tab in Data Sources (`src/pages/Sources.tsx`). Ingests issues via unauthenticated public REST API with rate-limit detection and an instant "Paste JSON" fallback tab. Records permission snapshots in `source_permissions`.
+- **Seeded Demo Account:** Evaluators can log in with one click via `demo@relay.local` / `DemoUser2026!` or open the sample workspace in one click.
 
-### Core Eight-Step Handover Test (`tests/workflow.spec.ts`)
+### Improvement 2: Clarification Loop with Departing Member
+- **Inbox & Navigation:** Added `/clarifications` route and sidebar item (`src/pages/Clarifications.tsx`).
+- **Targeted Questions:** Leads can ask questions directly from the Knowledge Gap Radar or any candidate claim card.
+- **Authoritative Answers:** Departing members submit answers that are saved as immutable `clarification` source records (`CLR-...`) linked to the claim.
+- **Deterministic Re-Review:** Answering a question deterministically resets the claim review state to `Pending Review`. Model calls are strictly forbidden from deciding review status; only a human lead can accept or resolve the claim.
 
-| Step | Acceptance Criteria | Production Result |
-|---|---|---|
-| 1 | Signed-out visitor opens an isolated workspace with sample indicator | **Pass** |
-| 2 | Import a typed meeting note and observe imported record in source list | **Pass** |
-| 3 | Reconstruct project knowledge, generate ownership claim and inspect verbatim quotation | **Pass** |
-| 4 | Inspect contradictory sources, correct claim statement and refresh | **Pass** |
-| 5 | Review all candidate claims (Accept, Reject, Unresolved), select audience, and approve version | **Pass** |
-| 6 | Open incoming link in isolated session; verify HTTP 403/404 on restricted, rejected, and pending items | **Pass** |
-| 7 | Save a first-week task note, mark complete, refresh and acknowledge receipt | **Pass** |
-| 8 | Read receipt acknowledgement in lead audit history and inspect approved immutable version | **Pass** |
-
-*All 2 core workflow suites passed in 34.3s.*
-
----
-
-## 3. Live AI & Chatbot Verification Results (`tests/chat.spec.ts`)
-
-Verified live against `https://relay2-rho.vercel.app/`:
-
-### A. Extractor Verification
-* **Claim Extractor Label:** Shows `Extractor · Rule-based` when running on deterministic fallback; switches to `Extractor · AI-assisted` when `LLM_API_KEY` is provided.
-
-### B. Ask Relay 6-Query Verification Suite
-
-| # | Question & Role | Live Text Shown | Intent & Badge | Pass / Fail |
-|---|---|---|---|---|
-| 1 | `"hii"` (Lead) | `Hello! I am Ask Relay, ready to help you review and trace project facts back to their source evidence.`<br>Suggested questions:<br>• `What decisions were made about defer OAuth until sprint 4.?`<br>• `Who owns the nightly digest cron job.?`<br>• `Is the Issue #34 is open?` | `greeting`<br>Verified evidence | **Pass** |
-| 2 | `"what is my role"` (Lead) | `You are signed in as Riya with the Team Lead / Reviewer role. You have full visibility across all project sources (including lead-only records), candidate claims, and audit history. You can edit claims, publish approved handover snapshots, and manage incoming member access.` | `about_me`<br>Verified evidence | **Pass** |
-| 3 | `"who owns the nightly digest cron job?"` (Lead) | `Based on verified evidence: Aarav owns the nightly digest cron job. (Owner: Aarav, Status: Pending Review, Evidence: Insufficient Evidence).`<br>Cited claims (1): `Ownership: Aarav owns the nightly digest cr…`<br>Cited sources (1): `Nightly digest · Ownership (TB-1)` | `project_question`<br>Verified evidence | **Pass** |
-| 4 | `"what is OAuth?"` (Lead) | `[General answer, not from your project sources] OAuth is an open-standard authorization framework that allows third-party applications to obtain limited access to user resources without exposing credentials.` | `general_knowledge`<br>General knowledge (not project data) | **Pass** |
-| 5 | `"What is the quantum encryption protocol in 2035?"` (Lead) | `I searched the permitted handover records for "What is the quantum encryption protocol in 2035?", but could not find any recorded facts or evidence. To add this context, import a supporting meeting note in Data Sources or consult the team lead.`<br>Suggested questions:<br>• `What decisions were made about defer OAuth until sprint 4.?`<br>• `Who owns the nightly digest cron job.?` | `project_question`<br>Insufficient evidence | **Pass** |
-| 6 | `"What is the vendor contingency budget risk?"` (Neha, Incoming) | `This information is not available for this role.` | `restricted`<br>Restricted for this role | **Pass** |
-
-*All 6 live chatbot query tests passed in 10.2s.*
+### Improvement 3: Handover Versions, Side-by-Side Diff, & Staleness Detection
+- **Immutable Snapshots:** Handover versions are stored in PostgreSQL with database trigger immutability.
+- **Side-by-Side Diff Viewer:** Added `src/components/VersionDiffViewer.tsx` integrated into History (`src/pages/History.tsx`), highlighting added, removed, and changed claims with field-level before/after cards.
+- **Staleness Detection Engine:** `server/diff.js` flags draft claims with `Needs re-review` when clarifications are answered, new sources are imported, or 6 weeks have elapsed since last review.
+- **Version N+1 Re-Acknowledgement:** Handover page displays an "Updated Snapshot" banner on Version $N+1$, requiring the incoming developer to review the diff and formally re-acknowledge receipt.
+- **Audience Protection:** Restricted and lead-only content is excluded from incoming-member diff views.
 
 ---
 
-## 4. How to Configure the Gemini API Key on Vercel
+## 3. Server-Side Automated Test Suites (25 Tests Passing in 1.7s)
 
-If you wish to enable live Gemini LLM calls in production:
-1. Log in to [Vercel Dashboard](https://vercel.com/) and navigate to project `relay2` under team `dev407`.
-2. Go to **Settings → Environment Variables**.
-3. Add a new variable:
-   * **Key:** `LLM_API_KEY`
-   * **Value:** *(your Google Gemini API key from Google AI Studio)*
-   * **Environment:** Select **Production**.
-4. Add another variable:
-   * **Key:** `LLM_PROVIDER`
-   * **Value:** `gemini`
-   * **Environment:** Select **Production**.
-5. Go to **Deployments**, click the three dots (`...`) on the latest production deployment, and select **Redeploy**.
-6. When redeployment completes, Reconstruction will use `gemini-2.5-flash` with strict JSON schema and label claims `Extractor · AI-assisted`. If the key is omitted or invalid, Relay automatically and safely falls back to tested deterministic rules without error.
+```
+> relay-handover@2.0.0 test
+> node --test server/rules.test.js server/reconstruction.test.js server/chat.test.js server/tenant.test.js server/accuracy.test.js
+
+--- Extraction Accuracy Report ---
+Evaluated 3 diverse company contexts with 9 target claims:
+Total Matched: 9/9 (100.0%)
+Ownership Accuracy: 3/3 (100.0%)
+Decisions Accuracy: 3/3 (100.0%)
+Blockers Accuracy: 3/3 (100.0%)
+Verbatim Excerpt Verification Rate: 9/9 (100.0%)
+-----------------------------------
+
+✔ Extraction Accuracy: evaluates 3 distinct companies across Ownership, Decisions, and Blockers (22.7ms)
+✔ Ask Relay: greeting does not trigger a refusal and provides clickable suggestions (6.1ms)
+✔ Ask Relay: 'what is my role' returns the correct role without model call (4.4ms)
+✔ Ask Relay: general answer contains the label and sends zero project data in the prompt (164.4ms)
+✔ Ask Relay: incoming member's questions never include lead-only text in prompt sent to model (5.2ms)
+✔ Ask Relay: answers cite only permitted claims and discard unverified citations (2.1ms)
+✔ Ask Relay: question the evidence cannot answer gets a refusal / insufficient evidence (4.4ms)
+✔ Ask Relay: prompt-injection in question or notes is neutralized (0.7ms)
+✔ reconstruction preserves reviewed identity and tracks corroboration, unrelated notes and contradiction (30.9ms)
+✔ a stale note, repeated import or review alone cannot corroborate ownership (0.9ms)
+✔ a repeated reconstruction keeps the competing owner's distinct pending claim (5.3ms)
+✔ Exact quotes allow only whitespace differences (2.5ms)
+✔ Contradictions outrank stale and low authority (1.6ms)
+✔ Only reviewed, permitted claims can be published (0.6ms)
+✔ Role signatures reject tampering (2.7ms)
+✔ Arbitrary owner and conflicting source states are grounded (17.1ms)
+✔ Provider cannot cite unseen records or use a fabricated quotation (71.8ms)
+✔ Account & Organization: signup hashes password, creates org and sets user as Admin (144.5ms)
+✔ Account: login validates credentials and rejects wrong passwords (323.4ms)
+✔ Project Setup Wizard: creates isolated project without hard-coded names (96.7ms)
+✔ Tenant Isolation: user from Company A cannot list or access Company B projects (183.1ms)
+✔ Project Invites: lead creates invite token and recipient accepts with designated role (188.2ms)
+✔ GitHub Issues Connector: imports issues as source records with permission snapshot (0.6ms)
+✔ Clarification Loop: question creation and answer moves claim back to Pending Review (0.9ms)
+✔ Version Diff: detects added, removed, changed claims and excludes restricted content for incoming (0.5ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ duration_ms 1777.9642
+```
+
+---
+
+## 4. Ground-Truth Extraction Accuracy Evaluation
+
+Evaluated via `server/accuracy.test.js` against `test-fixtures/ground-truth.json`:
+
+| Company Domain | Target Focus | Precision | Recall | Verbatim Check |
+| :--- | :--- | :---: | :---: | :---: |
+| **ApexPay** (FinTech) | Ownership, DB Migration Decision, Webhook Blocker | 100% | 100% | 100% Pass |
+| **HealthBridge** (Digital Health) | Audit Ownership, WebRTC Decision, Token Expiry Blocker | 100% | 100% | 100% Pass |
+| **RoutePulse** (Fleet Logistics) | Telematics Ownership, Partitioning Decision, Kafka Blocker | 100% | 100% | 100% Pass |
+| **Overall** | **9 Target Claims across 3 Sectors** | **100%** | **100%** | **100% Pass** |
+
+---
+
+## 5. Live Production Acceptance Check (`https://relay2-rho.vercel.app/`)
+
+Verified in private incognito sessions on the live deployment:
+
+| # | Journey & Test Step | Live Result | Status |
+|---|---|---|---|
+| 1 | Evaluator landing page with seeded demo card (`demo@relay.local`) & sample button | Clean, responsive, no forbidden terminology | **Pass** |
+| 2 | One-click Demo Lead login | Sets signed session cookie; opens dashboard as Admin | **Pass** |
+| 3 | Project Setup Wizard | Successfully creates isolated custom project | **Pass** |
+| 4 | GitHub Issues Ingestion | Ingests issues and captures permission snapshot | **Pass** |
+| 5 | Knowledge Reconstruction & Verbatim Evidence | Extracts claims with honest `Extractor` badge & exact quotes | **Pass** |
+| 6 | Clarification Loop | Lead asks question; departing answers; resets claim to Pending Review | **Pass** |
+| 7 | Handover Version 1 Approval | Approves immutable snapshot for incoming developer | **Pass** |
+| 8 | One-Click Incoming Member View | Opens recipient view pre-authenticated; enforces permissions | **Pass** |
+| 9 | Version 2 Revision & Staleness | Detects updates; publishes Version 2 with updated snapshot banner | **Pass** |
+| 10 | Version Diff Comparison | Side-by-side comparison shows added, removed, and changed claims | **Pass** |
+| 11 | Recipient Re-Acknowledgement | Incoming member submits formal re-acknowledgement | **Pass** |
+| 12 | Tenant Isolation Enforcement | User from Org A receives 403 when requesting Org B project | **Pass** |
+| 13 | Ask Relay Interactive Q&A | All 6 intent categories (greeting, role, project, general, restricted, refusal) pass | **Pass** |
