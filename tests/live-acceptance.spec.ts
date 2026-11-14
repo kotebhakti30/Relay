@@ -77,14 +77,14 @@ test.describe("Production Live Acceptance Suite", () => {
 
     // Wizard opens
     await expect(page.getByRole("heading", { name: "New Handover Project" })).toBeVisible();
-    await page.getByLabel(/Project Name/i).fill("Core Billing Engine");
-    await page.getByLabel(/Project Code/i).fill("CBE");
+    await page.getByLabel("Project Name *").fill("Core Billing Engine");
+    await page.getByLabel("Project Code").fill("CBE");
     await page.getByRole("button", { name: "Next" }).click();
 
-    await page.getByLabel(/Departing Person's Name/i).fill("Sarah Jenkins");
+    await page.getByLabel("Departing Person Name *").fill("Sarah Jenkins");
     await page.getByRole("button", { name: "Next" }).click();
 
-    await page.getByLabel(/Incoming Person's Name/i).fill("Marcus Chen");
+    await page.getByLabel("Incoming Person Name *").fill("Marcus Chen");
     await page.getByRole("button", { name: "Next" }).click();
 
     await page.getByRole("button", { name: /Create & Open Project/i }).click();
@@ -110,14 +110,20 @@ test.describe("Production Live Acceptance Suite", () => {
     await page.goto("/#/review");
     await expect(page.getByRole("heading", { name: "Your judgment makes it a handover." })).toBeVisible();
 
-    // Review any pending claim
-    const editBtn = page.getByRole("button", { name: "Review / edit" }).first();
-    if (await editBtn.isVisible()) {
-      await editBtn.click();
+    // Review all candidate claims so handover approval is unlocked
+    const editBtns = page.getByRole("button", { name: "Review / edit" });
+    const count = await editBtns.count();
+    for (let i = 0; i < count; i++) {
+      await page.getByRole("button", { name: "Review / edit" }).first().click();
       const dialog = page.getByRole("dialog");
       await dialog.getByLabel("Review decision").selectOption("Accepted");
       await dialog.getByLabel("Review reason / notes").fill("Verified by team lead.");
+      const resolution = dialog.getByLabel(/Verification outcome/i);
+      if (await resolution.isVisible()) {
+        await resolution.fill("Verified against source code and confirmed.");
+      }
       await dialog.getByRole("button", { name: "Save review" }).click();
+      await expect(dialog).toHaveCount(0);
     }
 
     // Approve handover
