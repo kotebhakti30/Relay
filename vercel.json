@@ -1,1 +1,11 @@
-{"framework":"vite","rewrites":[{"source":"/api/:route*","destination":"/api/relay?route=:route*"}],"functions":{"api/relay.js":{"maxDuration":45}}}
+{
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/health", "destination": "/api/health" },
+    { "source": "/api/:route*", "destination": "/api/relay?route=:route*" }
+  ],
+  "functions": {
+    "api/relay.js": { "maxDuration": 45 },
+    "api/health.js": { "maxDuration": 15 }
+  }
+}

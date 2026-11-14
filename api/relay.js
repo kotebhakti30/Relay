@@ -1,11 +1,19 @@
 import { request } from "../server/workflow.js";
+import { checkHealth } from "../server/health.js";
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   try {
     const url = new URL(req.url, "http://localhost");
     const path =
-      url.searchParams.get("route") || url.pathname.replace(/^\/api\//, "");
+      url.searchParams.get("route") ||
+      url.searchParams.get("action") ||
+      url.pathname.replace(/^\/api\//, "");
+
+    if (path === "health") {
+      const health = await checkHealth();
+      return res.status(health.status === "ok" ? 200 : 503).json(health);
+    }
     let body = req.body ?? {};
     if (typeof body === "string") {
       try {

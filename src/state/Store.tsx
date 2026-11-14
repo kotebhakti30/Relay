@@ -36,7 +36,11 @@ export async function api(
   const data = await res.json().catch(() => ({
     error: "API unavailable. Check the deployment and retry.",
   }));
-  if (!res.ok || data?.error) throw new Error(data?.error || "Request failed.");
+  if (!res.ok || data?.error) {
+    const err = new Error(data?.error || "Request failed.");
+    (err as any).status = res.status;
+    throw err;
+  }
   return data;
 }
 
@@ -131,10 +135,20 @@ export function Store({ children }: { children: ReactNode }) {
   }
 
   async function refresh() {
-    if (token) {
+    if (!token) return;
+    try {
       const s = await api("state", token);
       setState(s);
       await syncUser();
+    } catch (e: any) {
+      if (e.status === 401 || e.status === 404) {
+        sessionStorage.removeItem(key);
+        setToken("");
+        setState(null);
+        setError("");
+      } else {
+        throw e;
+      }
     }
   }
 
@@ -156,20 +170,37 @@ export function Store({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let inFlight = false;
+
     async function sync() {
+      if (!token || inFlight) return;
+      inFlight = true;
       try {
         const next = await api("state", token);
         if (active) {
           setState(next);
+          setError("");
           void syncUser();
         }
-      } catch (e) {
+      } catch (e: any) {
         if (active) {
-          setError((e as Error).message);
-          setState(null);
+          if (e.status === 401 || e.status === 404) {
+            // Treat 401 and 404 on state call as "signed out" cleanly.
+            // Clear stale session token, show no error banner, and do not retry.
+            sessionStorage.removeItem(key);
+            setToken("");
+            setState(null);
+            setError("");
+          } else if (state) {
+            // Real network failure or 5xx on an already active session
+            setError(e.message || "Connection lost. Please retry.");
+          }
         }
+      } finally {
+        inFlight = false;
       }
     }
+
     if (token) {
       void sync();
       window.addEventListener("focus", sync);
@@ -266,6 +297,7 @@ export function Store({ children }: { children: ReactNode }) {
     setUser(null);
     setOrg(null);
     setOrgs([]);
+    setError("");
   }
 
   async function handleCreateProject(data: any) {
@@ -406,7 +438,7 @@ export function Store({ children }: { children: ReactNode }) {
       <button
         onClick={() => {
           setError("");
-          refresh().catch((e) => setError(e.message));
+          if (token) refresh().catch((e) => setError(e.message));
         }}
       >
         Retry connection

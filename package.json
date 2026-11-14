@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run build && npm start",
     "build": "tsc -b && vite build",
-    "test": "node --test server/rules.test.js server/reconstruction.test.js server/chat.test.js server/tenant.test.js server/accuracy.test.js",
+    "test": "node --test server/rules.test.js server/reconstruction.test.js server/chat.test.js server/tenant.test.js server/accuracy.test.js server/health.test.js",
     "test:e2e": "npm run build && playwright test",
     "preview": "vite preview --host 127.0.0.1",
     "start": "node --env-file-if-exists=.env scripts/serve.js",
