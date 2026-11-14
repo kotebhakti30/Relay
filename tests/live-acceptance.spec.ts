@@ -111,10 +111,11 @@ test.describe("Production Live Acceptance Suite", () => {
     await expect(page.getByRole("heading", { name: "Your judgment makes it a handover." })).toBeVisible();
 
     // Review all candidate claims so handover approval is unlocked
-    const editBtns = page.getByRole("button", { name: "Review / edit" });
-    const count = await editBtns.count();
+    const cards = page.locator(".review-card");
+    const count = await cards.count();
     for (let i = 0; i < count; i++) {
-      await page.getByRole("button", { name: "Review / edit" }).first().click();
+      const card = cards.nth(i);
+      await card.getByRole("button", { name: "Review / edit" }).click();
       const dialog = page.getByRole("dialog");
       await dialog.getByLabel("Review decision").selectOption("Accepted");
       await dialog.getByLabel("Review reason / notes").fill("Verified by team lead.");
@@ -124,6 +125,7 @@ test.describe("Production Live Acceptance Suite", () => {
       }
       await dialog.getByRole("button", { name: "Save review" }).click();
       await expect(dialog).toHaveCount(0);
+      await page.waitForTimeout(300);
     }
 
     // Approve handover
@@ -160,6 +162,30 @@ test.describe("Production Live Acceptance Suite", () => {
     }
 
     await incognitoPage.close();
+
+    // Verify Revoke access and Generate new link and code flow
+    await page.getByRole("button", { name: "Revoke access" }).click();
+    await expect(page.getByText("Sharing is revoked.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Generate new link and code" })).toBeVisible();
+
+    // Generate new link
+    await page.getByRole("button", { name: "Generate new link and code" }).click();
+    await expect(page.getByRole("link", { name: "Open as incoming member" })).toBeVisible();
+    const freshIncomingUrl = await page.getByRole("link", { name: "Open as incoming member" }).getAttribute("href");
+    expect(freshIncomingUrl).toBeTruthy();
+    expect(freshIncomingUrl).not.toEqual(incomingUrl);
+
+    // Old link fails
+    const oldLinkPage = await context.newPage();
+    await oldLinkPage.goto(incomingUrl!);
+    await expect(oldLinkPage.locator(".storage-warning")).toContainText("Invalid or revoked access. Retry connection");
+    await oldLinkPage.close();
+
+    // New link succeeds
+    const newLinkPage = await context.newPage();
+    await newLinkPage.goto(freshIncomingUrl!);
+    await expect(newLinkPage.getByText(/Viewing as Incoming Developer/i)).toBeVisible();
+    await newLinkPage.close();
   });
 
   test("7. Refresh on deep link: persists authenticated state with zero errors", async ({ page, context }) => {
@@ -183,5 +209,27 @@ test.describe("Production Live Acceptance Suite", () => {
     await expect(page.getByRole("heading", { name: "The project, reconstructed." })).toBeVisible();
     await expect(page.locator(".storage-warning")).toHaveCount(0);
     expect(consoleErrors).toEqual([]);
+  });
+
+  test("8. Reset sample workspace: resets demo data to clean CampusConnect seed", async ({ page, context }) => {
+    await context.clearCookies();
+    await page.goto("/");
+    await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
+    await expect(page.locator(".topbar")).toBeVisible();
+
+    // Verify button exists
+    const resetBtn = page.getByRole("button", { name: "Reset sample workspace" });
+    await expect(resetBtn).toBeVisible();
+    await resetBtn.click();
+
+    // Confirm dialog
+    const modal = page.getByRole("dialog");
+    await expect(modal).toBeVisible();
+    await expect(modal.getByRole("heading", { name: "Reset sample workspace?" })).toBeVisible();
+    await modal.getByRole("button", { name: "Reset sample workspace" }).click();
+
+    // Redirected to overview
+    await expect(page.locator(".topbar")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
   });
 });

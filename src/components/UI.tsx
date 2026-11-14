@@ -2,6 +2,18 @@ import { useEffect, useRef, useId, type ReactNode } from "react";
 import { X, ArrowUpRight, FileText, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Claim, SourceRecord } from "../domain/types";
+
+/**
+ * Strips stray markdown characters (**, #, leading list bullets) from statements when rendering
+ */
+export function cleanText(s: string): string {
+  if (!s || typeof s !== "string") return "";
+  return s
+    .replace(/\*\*/g, "")
+    .replace(/^#{1,6}\s*/g, "")
+    .replace(/^\s*[-*•]\s+/g, "")
+    .trim();
+}
 export function Badge({ children }: { children: ReactNode }) {
   const text = String(children);
   return (
@@ -120,7 +132,7 @@ export function Evidence({
         <Badge>{claim.review}</Badge>
         {claim.restricted && <Badge>Lead only</Badge>}
       </div>
-      <h2 className="claim-title">{claim.statement}</h2>
+      <h2 className="claim-title">{cleanText(claim.statement)}</h2>
       <div className="meta">
         Owner: {claim.owner} · Last evidence: {date(claim.updated)}
       </div>

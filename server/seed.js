@@ -57,7 +57,7 @@ export const samples = [
 ];
 export async function seed(client) {
   const w = randomUUID();
-  await client.query("INSERT INTO workspaces(id) VALUES ($1)", [w]);
+  await client.query("INSERT INTO workspaces(id, run) VALUES ($1, 1)", [w]);
   await client.query(
     "INSERT INTO users VALUES ($1,'reviewer','Riya'),($1,'incoming','Neha')",
     [w],
@@ -71,5 +71,32 @@ export async function seed(client) {
     "INSERT INTO audit_log(workspace,actor,type,detail) VALUES ($1,'Riya','Workspace','Created CampusConnect with five initial records.')",
     [w],
   );
+
+  // Automatically extract and seed the 5 standard candidate claims with payment in conflicting state
+  const records = samples.map(([id, title, type, author, text, visibility, days]) => ({
+    id,
+    title,
+    type,
+    author,
+    text,
+    visibility,
+    recorded_at: new Date(Date.now() - days * 86400000).toISOString(),
+  }));
+  const { extract } = await import("./extract.js");
+  const { claims } = await extract(records);
+  for (const c of claims) {
+    await client.query("INSERT INTO claims VALUES($1,$2,$3)", [w, c.id, c]);
+    for (const rid of c.refs) {
+      if (c.quotes?.[rid]) {
+        await client.query("INSERT INTO evidence_links VALUES($1,$2,$3,$4)", [
+          w,
+          c.id,
+          rid,
+          c.quotes[rid],
+        ]);
+      }
+    }
+  }
+
   return w;
 }

@@ -29,6 +29,7 @@ async function getProjectMetadata(db, ws) {
       try {
         team = typeof proj.team_members === "string" ? JSON.parse(proj.team_members) : proj.team_members;
       } catch {}
+      const leadPerson = team?.find((p) => /lead|manager|admin/i.test(p.role))?.name || (proj.name === sampleProject.name ? "Riya Sharma" : "Team Lead");
       return {
         id: proj.id,
         name: proj.name,
@@ -39,7 +40,7 @@ async function getProjectMetadata(db, ws) {
         departingLastDay: proj.departing_last_day,
         incoming: proj.incoming_name,
         incomingRole: proj.incoming_role,
-        lead: proj.departing_name,
+        lead: leadPerson,
         people: team && team.length > 0 ? team : sampleProject.people,
         projectId: proj.id,
       };
@@ -559,10 +560,29 @@ export async function request(method, path, header, b, ip) {
       return { ok: true };
     }
 
-    // Reset workspace
+    // Reset workspace / Reset sample workspace
     if (route === "POST reset") {
       await db.query("UPDATE workspaces SET active=false WHERE id=$1", [w]);
       const fresh = await seed(db);
+      if (ws.org_id && ws.project_id) {
+        await db.query(
+          "UPDATE workspaces SET org_id=$1, project_id=$2 WHERE id=$3",
+          [ws.org_id, ws.project_id, fresh]
+        );
+        await db.query(
+          "UPDATE projects SET workspace_id=$1 WHERE id=$2",
+          [fresh, ws.project_id]
+        );
+        return {
+          token: issue(fresh, "reviewer", undefined, {
+            accountId,
+            email: authUser?.email,
+            name: authUser?.name,
+            orgId: ws.org_id,
+            projectId: ws.project_id,
+          }),
+        };
+      }
       return { token: issue(fresh, "reviewer") };
     }
 

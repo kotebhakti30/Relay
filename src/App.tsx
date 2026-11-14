@@ -313,7 +313,7 @@ function Shell() {
             {p.sample && state.role === "reviewer" && (
               <button className="reset-button" onClick={() => setReset(true)}>
                 <RotateCcw size={15} />
-                Reset workspace
+                Reset sample workspace
               </button>
             )}
           </div>
@@ -455,10 +455,9 @@ function Shell() {
         </div>
       )}
       {reset && (
-        <Modal title="Reset workspace?" onClose={() => setReset(false)}>
+        <Modal title="Reset sample workspace?" onClose={() => setReset(false)}>
           <p>
-            This retires your workspace and its links, and starts a fresh
-            workspace.
+            This restores the clean sample workspace: the small CampusConnect claim set, nothing approved, sharing not yet created, and the payment conflict unresolved.
           </p>
           <div className="actions">
             <button onClick={() => setReset(false)}>Keep my progress</button>
@@ -473,7 +472,7 @@ function Shell() {
                 nav("/");
               }}
             >
-              Reset everything
+              Reset sample workspace
             </button>
           </div>
         </Modal>

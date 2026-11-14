@@ -4,7 +4,7 @@ import { Check, ArrowUpRight, ShieldCheck, Radar } from "lucide-react";
 import { useStore } from "../state/Store";
 import { activeGaps, approvalErrors } from "../domain/engine";
 import type { Claim, Gap } from "../domain/types";
-import { Heading, Badge, Empty, Modal } from "../components/UI";
+import { Heading, Badge, Empty, Modal, cleanText } from "../components/UI";
 import { ReviewDialog } from "../components/ReviewDialog";
 export function Review() {
   const { p, dispatch } = useStore();
@@ -58,7 +58,7 @@ export function Review() {
                     </span>
                     <Badge>{c.review}</Badge>
                   </div>
-                  <h3>{c.statement}</h3>
+                  <h3>{cleanText(c.statement)}</h3>
                   <div className="flex flex-wrap gap-2">
                     <Badge>{c.evidence}</Badge>
                     <Badge>Extractor · {c.extractor}</Badge>

@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowUpRight, Search, LockKeyhole, ArrowLeft } from "lucide-react";
 import { useStore } from "../state/Store";
 import { visibleClaims, visibleRecords } from "../domain/engine";
-import { Heading, Badge, Empty, Evidence, date } from "../components/UI";
+import { Heading, Badge, Empty, Evidence, date, cleanText } from "../components/UI";
 import { ReviewDialog } from "../components/ReviewDialog";
 import type { Claim } from "../domain/types";
 const categories = [
@@ -131,7 +131,7 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                       <small>{c.id.toUpperCase()}</small>
                       {c.restricted && <LockKeyhole size={14} />}
                     </div>
-                    <strong>{c.statement}</strong>
+                    <strong>{cleanText(c.statement)}</strong>
                     <div className="flex flex-wrap gap-2">
                       <Badge>{c.evidence}</Badge>
                       <small>
@@ -195,7 +195,7 @@ export function Knowledge({ explorer = false }: { explorer?: boolean }) {
                       <span className="eyebrow">{c.category}</span>
                       <ArrowUpRight size={17} />
                     </div>
-                    <h3>{c.statement}</h3>
+                    <h3>{cleanText(c.statement)}</h3>
                     <div className="flex gap-2 flex-wrap">
                       <Badge>{c.evidence}</Badge>
                       <Badge>Extractor · {c.extractor}</Badge>

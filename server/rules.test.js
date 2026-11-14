@@ -34,6 +34,79 @@ test("Role signatures reject tampering", () => {
   assert.equal(verify("Bearer " + token).role, "incoming");
   assert.throws(() => verify(token + "x"));
 });
+test("Sharing: revoke then regenerate invalidates old link and makes new link valid", async () => {
+  process.env.SESSION_SECRET = "x".repeat(32);
+  const { share, redeem } = await import("./sharing.js");
+  const sharesTable = new Map();
+  const mockDb = {
+    query: async (sql, params = []) => {
+      if (sql.includes("to_regclass")) return { rows: [{ present: true }] };
+      if (sql.includes("pg_advisory_xact_lock")) return { rows: [] };
+      if (sql.includes("CREATE TABLE IF NOT EXISTS relay_shares")) return { rows: [] };
+      if (sql.includes("SELECT * FROM relay_shares WHERE workspace=$1")) {
+        const row = sharesTable.get(params[0]);
+        return { rows: row ? [row] : [] };
+      }
+      if (sql.includes("UPDATE relay_shares SET active=false")) {
+        const row = sharesTable.get(params[0]);
+        if (row) {
+          row.active = false;
+          row.link_hash = null;
+          row.code_hash = null;
+        }
+        return { rows: [] };
+      }
+      if (sql.includes("INSERT INTO relay_shares")) {
+        const [workspace, generation, link_hash, code_hash] = params;
+        sharesTable.set(workspace, { workspace, generation, link_hash, code_hash, active: true });
+        return { rows: [] };
+      }
+      if (sql.includes("SELECT s.workspace,s.generation FROM relay_shares")) {
+        const valHash = params[0];
+        for (const row of sharesTable.values()) {
+          if (row.active && (row.link_hash === valHash || row.code_hash === valHash)) {
+            return { rows: [{ workspace: row.workspace, generation: row.generation }] };
+          }
+        }
+        return { rows: [] };
+      }
+      return { rows: [] };
+    },
+  };
+
+  const ws = "test-ws-sharing-123";
+  // 1. Initial generation
+  const initial = await share(mockDb, ws, "regenerate");
+  assert.ok(initial.link);
+  assert.ok(initial.code);
+
+  // Initial link can be redeemed
+  const redeemed1 = await redeem(mockDb, { link: initial.link });
+  assert.ok(redeemed1.token);
+
+  // 2. Revoke sharing
+  const revoked = await share(mockDb, ws, "revoke");
+  assert.equal(revoked, null);
+
+  // Old link now fails to redeem
+  await assert.rejects(async () => {
+    await redeem(mockDb, { link: initial.link });
+  }, /Invalid or revoked access/);
+
+  // 3. Regenerate sharing
+  const fresh = await share(mockDb, ws, "regenerate");
+  assert.ok(fresh.link);
+  assert.notEqual(fresh.link, initial.link);
+
+  // Old link still fails
+  await assert.rejects(async () => {
+    await redeem(mockDb, { link: initial.link });
+  }, /Invalid or revoked access/);
+
+  // Fresh link succeeds
+  const redeemed2 = await redeem(mockDb, { link: fresh.link });
+  assert.ok(redeemed2.token);
+});
 test("Arbitrary owner and conflicting source states are grounded", async () => {
   delete process.env.LLM_API_KEY;
   const rs = samples.map(([id, title, type, author, text, visibility]) => ({

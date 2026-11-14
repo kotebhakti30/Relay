@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Check, ChevronDown, ShieldCheck } from "lucide-react";
 import { useStore } from "../state/Store";
 import { latest, readerClaims, plan } from "../domain/engine";
-import { Heading, Badge, Empty, Evidence, date, Modal } from "../components/UI";
+import { Heading, Badge, Empty, Evidence, date, Modal, cleanText } from "../components/UI";
 import type { Claim } from "../domain/types";
 export function Handover() {
   const { state, p, dispatch, incomingLink } = useStore();
@@ -130,7 +130,17 @@ export function Handover() {
                   </div>
                 </>
               ) : (
-                <p>Sharing is revoked.</p>
+                <div className="flex flex-col gap-3 items-start">
+                  <p className="text-stone-600">Sharing is revoked.</p>
+                  <button
+                    className="primary"
+                    onClick={() =>
+                      dispatch({ type: "share", action: "regenerate" })
+                    }
+                  >
+                    Generate new link and code
+                  </button>
+                </div>
               )}
             </section>
           )}
@@ -149,7 +159,7 @@ export function Handover() {
                   <span className="eyebrow">{c.category}</span>
                   <Badge>{c.review}</Badge>
                 </div>
-                <h3>{c.statement}</h3>
+                <h3>{cleanText(c.statement)}</h3>
                 <div className="flex gap-2 flex-wrap">
                   <Badge>{c.evidence}</Badge>
                   <Badge>Extractor · {c.extractor}</Badge>
@@ -281,7 +291,7 @@ export function Plan() {
                       <strong>Dependency:</strong> {t.dependency}
                     </p>
                     <p>
-                      <strong>Related claim:</strong> {t.claim.statement}
+                      <strong>Related claim:</strong> {cleanText(t.claim.statement)}
                     </p>
                     <Badge>{t.claim.review}</Badge>
                     <div className="actions">
