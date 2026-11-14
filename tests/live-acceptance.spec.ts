@@ -96,7 +96,7 @@ test.describe("Production Live Acceptance Suite", () => {
   test("6. Full Handover Journey: approve, open as incoming, acknowledge", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto("/");
-    await page.getByRole("button", { name: "Sign in as Demo Lead" }).click();
+    await page.getByRole("button", { name: /Sign in with evaluation account|Sign in as Demo Lead/i }).click();
     await expect(page.locator(".topbar")).toBeVisible();
     await expect(page.getByRole("button", { name: "Riya Sharma" })).toBeVisible();
 
@@ -174,10 +174,10 @@ test.describe("Production Live Acceptance Suite", () => {
     expect(freshIncomingUrl).toBeTruthy();
     expect(freshIncomingUrl).not.toEqual(incomingUrl);
 
-    // Old link fails
+    // Old link fails with full-page expired screen
     const oldLinkPage = await context.newPage();
     await oldLinkPage.goto(incomingUrl!);
-    await expect(oldLinkPage.locator(".storage-warning")).toContainText("Invalid or revoked access. Retry connection");
+    await expect(oldLinkPage.getByRole("heading", { name: "Your access has ended or expired" })).toBeVisible();
     await oldLinkPage.close();
 
     // New link succeeds
@@ -238,23 +238,43 @@ test.describe("Production Live Acceptance Suite", () => {
     await page.getByRole("button", { name: /Sign in with evaluation account|Sign in as Demo Lead/i }).click();
     await expect(page.locator(".topbar")).toBeVisible();
 
-    // Reset workspace to clean state
-    const resetBtn = page.getByRole("button", { name: /Reset workspace|Reset sample workspace/i });
-    if (await resetBtn.isVisible()) {
-      await resetBtn.click();
-      const modal = page.getByRole("dialog");
-      await modal.getByRole("button", { name: /Reset workspace|Reset sample workspace/i }).click();
-      await expect(page.locator(".topbar")).toBeVisible();
+    // Go to Handover page and ensure an approved handover version exists
+    await page.goto("/#/handover");
+    const reviewLink = page.getByRole("link", { name: "Go to review" });
+    if (await reviewLink.isVisible()) {
+      await page.goto("/#/reconstruct");
+      await page.getByRole("button", { name: "Reconstruct Project Knowledge" }).click();
+      await expect(page).toHaveURL(/knowledge/);
+
+      await page.goto("/#/review");
+      const cards = page.locator(".review-card");
+      const count = await cards.count();
+      for (let i = 0; i < count; i++) {
+        const card = page.locator(".review-card").nth(i);
+        await card.getByRole("button", { name: "Review / edit" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Review decision").selectOption("Accepted");
+        await dialog.getByLabel("Review reason / notes").fill("Verified by team lead.");
+        const resolution = dialog.getByLabel(/Verification outcome/i);
+        if (await resolution.isVisible()) {
+          await resolution.fill("Verified against source code and confirmed.");
+        }
+        await dialog.getByRole("button", { name: "Save review" }).click();
+        await expect(dialog).toHaveCount(0);
+        await page.waitForTimeout(300);
+      }
+      await page.getByLabel("Target audience").selectOption("incoming");
+      await page.getByLabel("I confirm the included information is appropriate for this audience.").check();
+      await page.getByRole("button", { name: "Approve Handover" }).click();
+      const confirmModal = page.getByRole("dialog");
+      await confirmModal.getByRole("button", { name: "Confirm approval" }).click();
+      await expect(page).toHaveURL(/handover/);
     }
 
-    // Go to Review & approve
-    await page.goto("/#/review");
-    await page.getByLabel("Target audience").selectOption("incoming");
-    await page.getByLabel(/I confirm the included information/i).check();
-    await page.getByRole("button", { name: "Approve and publish handover" }).click();
-
-    // Go to Handover page and get incoming link
-    await page.goto("/#/handover");
+    const genBtn = page.getByRole("button", { name: "Generate new link and code" });
+    if (await genBtn.isVisible()) {
+      await genBtn.click();
+    }
     const incomingLinkEl = page.getByRole("link", { name: "Open as incoming member" });
     await expect(incomingLinkEl).toBeVisible();
     const incomingUrl = await incomingLinkEl.getAttribute("href");
